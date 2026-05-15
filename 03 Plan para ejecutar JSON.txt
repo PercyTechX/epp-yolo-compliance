@@ -1,0 +1,310 @@
+{
+  "metadata_plan": {
+    "titulo": "Plan de trabajo factible para Detección de Cumplimiento de EPP con YOLO",
+    "version_plan": "1.0",
+    "idioma": "Español",
+    "filosofia": "Construir un sistema defensable de extremo a extremo priorizando calidad sobre exotismo: una sola arquitectura bien afinada, taxonomía unificada, verificador simple pero correcto, evaluación estratificada y honesta.",
+    "duracion_total_estimada": "6 semanas a dedicación parcial (aproximadamente 8-10 horas semanales por integrante)",
+    "supuestos_de_recursos": {
+      "computo": "Acceso a GPU mediante Google Colab Pro, Kaggle Notebooks o equipo local con GPU NVIDIA de al menos 8 GB VRAM.",
+      "almacenamiento": "Mínimo 30 GB para datasets fusionados y checkpoints.",
+      "equipo": "1 a 3 integrantes con conocimiento básico de Python, PyTorch y línea de comandos."
+    }
+  },
+
+  "decisiones_estrategicas": {
+    "version_yolo_elegida": {
+      "decision": "YOLOv8 (variante m como objetivo, s como baseline rápido)",
+      "justificacion": "Soporte oficial de Ultralytics, documentación extensa, compatibilidad probada con entornos gratuitos (Colab/Kaggle), mejor relación costo-beneficio frente a YOLOv9 para un proyecto académico con plazo definido.",
+      "alternativa_de_respaldo": "YOLOv8s si el tiempo de entrenamiento en YOLOv8m resulta prohibitivo."
+    },
+
+    "taxonomia_unificada_de_clases": {
+      "estrategia": "Detectar piezas observables y delegar la decisión de cumplimiento al verificador.",
+      "clases_finales": [
+        "head_with_helmet",
+        "head_without_helmet",
+        "person",
+        "vest",
+        "no_vest_person"
+      ],
+      "justificacion": "Permite que el modelo YOLO se concentre en percepción visual confiable y que la lógica de cumplimiento sea determinista, auditable y modificable sin reentrenar. Aprovecha al máximo SHWD que provee negativos explícitos de casco.",
+      "nota": "Las clases 'no_vest_person' y 'person' pueden colapsarse en una sola si los datasets no soportan la distinción; en ese caso la ausencia de chaleco se infiere por reglas espaciales."
+    },
+
+    "estrategia_de_datasets": {
+      "rol_de_cada_dataset": {
+        "SHWD": "Fuente primaria de negativos explícitos (cabeza sin casco). Núcleo del conjunto de entrenamiento.",
+        "Safety_Helmet_Detection_Roboflow": "Aporta volumen y diversidad de escenas con casco.",
+        "PPE_Detection_Roboflow": "Aporta clases de chalecos para completar la taxonomía."
+      },
+      "procedimiento_de_unificacion": [
+        "Auditar la taxonomía original de cada dataset y construir tabla de mapeo a la taxonomía unificada.",
+        "Remapear etiquetas con scripts reproducibles y validar visualmente una muestra de cada dataset.",
+        "Resolver conflictos de superposición (ej. una imagen con dos taxonomías) marcando una fuente como autoritativa por clase.",
+        "Generar splits estratificados (entrenamiento, validación, prueba) preservando distribución de clases por dataset de origen."
+      ],
+      "decision_de_alcance": "No se incluirán datos sintéticos ni etiquetado manual nuevo en esta primera versión del proyecto."
+    },
+
+    "manejo_de_objetos_pequenos": {
+      "tactica_principal": "Aumentar resolución de entrada de 640 (baseline) a 960 en el modelo final.",
+      "tacticas_secundarias": [
+        "Evitar mosaico agresivo en epochs finales para no escalar trabajadores lejanos a tamaños irreconocibles.",
+        "Verificar distribución de tamaños de bbox en el conjunto de entrenamiento y reportarla.",
+        "Considerar (si el tiempo lo permite) una cabeza de detección P2 para escalas pequeñas."
+      ],
+      "criterio_de_exito": "Mejora medible de mAP@0.5 en bboxes pequeños (área < 32x32 px) frente al baseline."
+    },
+
+    "manejo_de_oclusion": {
+      "tactica_principal": "Aumentaciones que simulen oclusión: Random Erasing, Cutout y MixUp moderado.",
+      "tacticas_secundarias": [
+        "Mantener augmentaciones geométricas suaves (rotación, traslación) para no inventar configuraciones imposibles.",
+        "Reportar desempeño segmentado por nivel de oclusión en el conjunto de prueba (entregable 3)."
+      ],
+      "criterio_de_exito": "Caída acotada de mAP entre el grupo de oclusión baja y oclusión alta, documentada con números concretos."
+    },
+
+    "manejo_de_desbalance_de_clases": {
+      "tactica_principal": "Pesos de clase en la función de pérdida según frecuencia inversa.",
+      "tacticas_secundarias": [
+        "Oversampling moderado de imágenes que contienen clases minoritarias (sin casco, sin chaleco).",
+        "Evaluación con desglose por clase obligatoria.",
+        "Selección del umbral de confianza operativo según el costo asimétrico de los errores, no según el mejor mAP global."
+      ]
+    },
+
+    "decision_sobre_mosaico": {
+      "configuracion": "Mosaico activado durante el 85% del entrenamiento, desactivado en los últimos 10-15 epochs (parámetro close_mosaic de Ultralytics).",
+      "justificacion": "El mosaico aumenta la diversidad pero distorsiona escalas; cerrarlo al final permite al modelo afinarse con imágenes en su distribución natural y mejora la detección de objetos pequeños."
+    },
+
+    "diseno_del_verificador_de_cumplimiento": {
+      "naturaleza": "Módulo Python independiente que consume las detecciones de YOLO por fotograma.",
+      "logica_por_persona": [
+        "Para cada bbox de tipo 'person', buscar bboxes de 'head_with_helmet' o 'head_without_helmet' cuya posición vertical esté en el tercio superior del bbox de la persona y con solapamiento horizontal significativo.",
+        "Buscar bbox de 'vest' contenido dentro del bbox de la persona con un IoU mínimo o relación de contención.",
+        "Asignar estado: CONFORME si tiene casco y chaleco; NO CONFORME si falla alguna; INDETERMINADO si no se puede asociar nada (reportar pero no penalizar)."
+      ],
+      "salida": {
+        "por_fotograma": "Lista de personas con estado de cumplimiento y tasa global de cumplimiento del fotograma.",
+        "visualizacion": "Bboxes verdes para conformes, rojos para no conformes, amarillos para indeterminados."
+      },
+      "tracking": "No se implementará tracking entre fotogramas en esta versión; cada frame se procesa de forma independiente. Se justifica por simplicidad y para mantener el módulo determinista y auditable."
+    },
+
+    "metodologia_de_particion_por_oclusion": {
+      "enfoque": "Semi-automático con validación manual.",
+      "procedimiento": [
+        "Calcular para cada bbox de persona el grado de solapamiento con otros bboxes (de personas, objetos detectados u objetos anotados).",
+        "Definir umbrales: oclusión baja (< 15% solapado), media (15-40%), alta (> 40%).",
+        "Revisar manualmente una muestra del 10% de cada grupo para corregir errores evidentes.",
+        "Reportar tamaño de cada grupo y métricas dentro de cada uno."
+      ]
+    }
+  },
+
+  "fases_del_proyecto": [
+    {
+      "fase": 1,
+      "nombre": "Preparación de entorno y datos",
+      "duracion": "Semana 1",
+      "objetivos": [
+        "Tener entorno reproducible funcionando.",
+        "Tener los tres datasets descargados, remapeados y splitados."
+      ],
+      "tareas": [
+        "Configurar entorno Python con ultralytics, pytorch, opencv-python, pyyaml.",
+        "Crear repositorio Git con estructura de carpetas estándar (data/, src/, configs/, runs/, reports/).",
+        "Descargar los tres datasets y verificar licencias.",
+        "Construir tabla de mapeo de clases por dataset hacia la taxonomía unificada.",
+        "Escribir y ejecutar script de remapeo de etiquetas.",
+        "Validar visualmente al menos 100 imágenes por dataset tras el remapeo.",
+        "Generar splits estratificados train/val/test (recomendado 70/15/15) sin fuga entre splits.",
+        "Guardar manifiestos de splits en CSV o JSON versionados."
+      ],
+      "entregables_intermedios": [
+        "Repositorio inicial con README.",
+        "Dataset unificado en formato YOLO listo para entrenamiento.",
+        "Reporte breve de distribución de clases por split."
+      ]
+    },
+    {
+      "fase": 2,
+      "nombre": "Entrenamiento baseline",
+      "duracion": "Semana 2",
+      "objetivos": [
+        "Establecer una referencia honesta de desempeño.",
+        "Identificar modos de falla principales."
+      ],
+      "tareas": [
+        "Entrenar YOLOv8s con configuración por defecto, resolución 640, 50-80 epochs.",
+        "Registrar todas las métricas con TensorBoard o el logger nativo de Ultralytics.",
+        "Calcular mAP@0.5 y mAP@0.5:0.95 globales y por clase sobre el conjunto de validación.",
+        "Generar visualizaciones de predicciones sobre 30-50 imágenes del set de validación.",
+        "Documentar fallos observados cualitativamente (objetos pequeños, oclusión, confusiones entre clases)."
+      ],
+      "entregables_intermedios": [
+        "Checkpoint baseline.",
+        "Reporte de métricas baseline en tabla.",
+        "Galería de fallos categorizada."
+      ]
+    },
+    {
+      "fase": 3,
+      "nombre": "Mejoras dirigidas a los tres desafíos",
+      "duracion": "Semanas 3 y 4",
+      "objetivos": [
+        "Aplicar las decisiones estratégicas (resolución, mosaico, augmentación, pesos de clase).",
+        "Iterar con experimentos comparables."
+      ],
+      "tareas": [
+        "Experimento A: subir resolución a 960 manteniendo el resto igual al baseline.",
+        "Experimento B: añadir Random Erasing y MixUp a la augmentación.",
+        "Experimento C: activar pesos de clase / oversampling para clases minoritarias.",
+        "Experimento D: configurar close_mosaic en los últimos 15 epochs.",
+        "Para cada experimento, registrar mAP global, por clase, tiempo de entrenamiento y observaciones cualitativas en una tabla comparativa.",
+        "Seleccionar la combinación ganadora y entrenar el modelo final (idealmente YOLOv8m con todas las mejoras integradas).",
+        "Si los tiempos lo permiten, ejecutar un único entrenamiento extendido del modelo final con 100-150 epochs."
+      ],
+      "entregables_intermedios": [
+        "Tabla comparativa de experimentos.",
+        "Checkpoint del modelo final.",
+        "Justificación escrita de cada decisión documentada (anclas, augmentación, mosaico, resolución)."
+      ]
+    },
+    {
+      "fase": 4,
+      "nombre": "Verificador de cumplimiento basado en reglas",
+      "duracion": "Semana 4 (en paralelo con tramo final de la fase 3)",
+      "objetivos": [
+        "Tener un módulo determinista que tome detecciones y emita veredictos de cumplimiento."
+      ],
+      "tareas": [
+        "Implementar función de asociación cabeza-persona basada en posición y solapamiento.",
+        "Implementar función de asociación chaleco-persona basada en contención.",
+        "Implementar agregador por fotograma que calcule tasa de cumplimiento.",
+        "Implementar renderizador que dibuje bboxes coloreados según estado.",
+        "Definir y probar al menos 10 casos de prueba unitarios sobre detecciones sintéticas.",
+        "Aplicar el verificador a un conjunto de imágenes de prueba y revisar resultados manualmente."
+      ],
+      "entregables_intermedios": [
+        "Módulo verificador con tests.",
+        "Conjunto de imágenes anotadas por el verificador para inspección visual."
+      ]
+    },
+    {
+      "fase": 5,
+      "nombre": "Evaluación estratificada y análisis de robustez",
+      "duracion": "Semana 5",
+      "objetivos": [
+        "Producir el entregable cuantitativo completo.",
+        "Caracterizar el comportamiento del sistema frente a oclusión."
+      ],
+      "tareas": [
+        "Calcular mAP@0.5 y mAP@0.5:0.95 sobre el conjunto de prueba con el modelo final.",
+        "Generar desglose por clase con tabla y matriz de confusión.",
+        "Etiquetar nivel de oclusión en el set de prueba con el procedimiento semi-automático.",
+        "Reportar mAP por grupo de oclusión (bajo, medio, alto) y discutir la caída observada.",
+        "Generar análisis de errores: ejemplos de falsos negativos y falsos positivos representativos."
+      ],
+      "entregables_intermedios": [
+        "Reporte cuantitativo completo en tablas y figuras.",
+        "Anexo de análisis cualitativo con ejemplos."
+      ]
+    },
+    {
+      "fase": 6,
+      "nombre": "Demostración en video y redacción final",
+      "duracion": "Semana 6",
+      "objetivos": [
+        "Producir la demostración visual.",
+        "Cerrar el informe escrito con la sección ética."
+      ],
+      "tareas": [
+        "Obtener uno o dos videos cortos de obras de construcción de fuentes libres (no vistos en entrenamiento, por ejemplo de YouTube con licencia compatible o grabación propia).",
+        "Ejecutar el pipeline completo (YOLO + verificador) sobre el video y exportar el video anotado de 30 a 60 segundos.",
+        "Redactar la sección de implicaciones éticas según los tres ejes obligatorios (falsos negativos vs positivos, privacidad, sesgos).",
+        "Integrar todas las secciones del informe final: introducción, datos, metodología, resultados, demostración, ética y conclusiones.",
+        "Revisar reproducibilidad: que un tercero pueda reentrenar siguiendo el README."
+      ],
+      "entregables_intermedios": [
+        "Video anotado de demostración.",
+        "Informe final integrado.",
+        "Repositorio con README final, scripts y configuraciones."
+      ]
+    }
+  ],
+
+  "criterios_de_exito_por_entregable": {
+    "entregable_1_modelo_yolo": {
+      "minimo_aceptable": "Modelo YOLOv8 entrenado con configuración documentada que supere al baseline en al menos un experimento.",
+      "objetivo": "Modelo final con justificación escrita para cada una de las cuatro decisiones mencionadas en el enunciado (anclas, augmentación, mosaico, resolución)."
+    },
+    "entregable_2_metricas": {
+      "minimo_aceptable": "Tabla con mAP@0.5 y mAP@0.5:0.95 global y por clase.",
+      "objetivo": "Tabla más matriz de confusión y discusión escrita sobre desempeño en clases minoritarias críticas."
+    },
+    "entregable_3_robustez_oclusion": {
+      "minimo_aceptable": "Reporte de mAP en al menos dos niveles de oclusión.",
+      "objetivo": "Tres niveles con tamaños de grupo reportados y discusión cuantitativa de la caída."
+    },
+    "entregable_4_verificador": {
+      "minimo_aceptable": "Módulo funcional aplicado a imágenes estáticas.",
+      "objetivo": "Módulo aplicado a video corto con tasa de cumplimiento por fotograma visible en pantalla."
+    },
+    "entregable_5_etica": {
+      "minimo_aceptable": "Una página cubriendo los tres ejes obligatorios.",
+      "objetivo": "Discusión que vincule las decisiones técnicas (umbral de confianza, pesos de clase) con las consecuencias éticas, no solo enunciados generales."
+    }
+  },
+
+  "riesgos_y_mitigaciones": [
+    {
+      "riesgo": "Recursos de cómputo insuficientes para entrenar a 960 con YOLOv8m.",
+      "mitigacion": "Fallback automático a YOLOv8s a 640 o uso de Kaggle Notebooks (30 horas gratuitas semanales de GPU)."
+    },
+    {
+      "riesgo": "Inconsistencia de etiquetas entre datasets que degrade el entrenamiento.",
+      "mitigacion": "Validación visual obligatoria tras el remapeo y posibilidad de descartar parcialmente un dataset si introduce ruido."
+    },
+    {
+      "riesgo": "Verificador con muchas asociaciones incorrectas por reglas demasiado estrictas o demasiado laxas.",
+      "mitigacion": "Suite de casos de prueba sintéticos y umbrales ajustables expuestos como parámetros."
+    },
+    {
+      "riesgo": "Video de demostración con condiciones muy distintas a las de entrenamiento provocando demo pobre.",
+      "mitigacion": "Seleccionar dos o tres videos candidatos y elegir el que mejor refleje el rango de condiciones del entrenamiento."
+    },
+    {
+      "riesgo": "Plazo apretado en las dos últimas semanas por concentración de entregables.",
+      "mitigacion": "Adelantar redacción de secciones de metodología y datos desde la fase 2, no esperar al final."
+    }
+  ],
+
+  "alcance_explicitamente_no_incluido": [
+    "Etiquetado manual de nuevas imágenes.",
+    "Tracking temporal entre fotogramas (ByteTrack, SORT, DeepSORT).",
+    "Re-identificación de trabajadores a lo largo del video.",
+    "Detección de arnés (mencionado en el enunciado como contextual, no central).",
+    "Entrenamiento de múltiples arquitecturas en paralelo (solo YOLOv8).",
+    "Despliegue en tiempo real o en hardware embebido.",
+    "Generación de datos sintéticos."
+  ],
+
+  "puntos_de_decision_para_el_usuario": [
+    {
+      "momento": "Antes de iniciar la fase 1",
+      "decision_pendiente": "Confirmar la taxonomía unificada propuesta o ajustar si los datasets reales no la soportan."
+    },
+    {
+      "momento": "Al finalizar la fase 2",
+      "decision_pendiente": "Validar que los modos de falla observados en el baseline coinciden con los esperados y autorizar las mejoras propuestas."
+    },
+    {
+      "momento": "Al finalizar la fase 3",
+      "decision_pendiente": "Fijar el modelo final y congelar hiperparámetros antes de la evaluación de prueba para evitar selección sesgada."
+    }
+  ]
+}

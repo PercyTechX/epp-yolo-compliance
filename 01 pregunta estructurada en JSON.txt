@@ -1,0 +1,164 @@
+{
+  "proyecto": {
+    "titulo": "Detección de Cumplimiento de Normas de Seguridad en Obras de Construcción",
+    "tecnologia_principal": "YOLO (recomendado YOLOv8 o YOLOv9)",
+    "tipo_tarea": "Detección de objetos + Verificación de cumplimiento basada en reglas",
+    "dominio": "Visión por computadora aplicada a seguridad ocupacional en construcción",
+    "idioma_entrega": "Español"
+  },
+
+  "contexto": {
+    "entorno_operacional": "Obras de construcción activas con presencia de trabajadores, maquinaria, andamios y materiales en movimiento.",
+    "elementos_de_proteccion_personal": [
+      "Casco de seguridad",
+      "Chaleco reflectivo de seguridad",
+      "Arnés (en contextos específicos como trabajo en altura)"
+    ],
+    "naturaleza_del_problema": "El sistema debe ir más allá de la detección estándar: debe identificar trabajadores y clasificar su estado de cumplimiento del EPP, considerando condiciones reales adversas de captura visual.",
+    "fuentes_de_entrada": [
+      "Imágenes fijas de obras de construcción",
+      "Secuencias de video cortas de obras de construcción"
+    ]
+  },
+
+  "desafios_tecnicos_principales": {
+    "oclusion_severa": {
+      "descripcion": "Trabajadores parcialmente ocultos detrás de maquinaria, andamios, materiales u otros trabajadores.",
+      "implicacion": "Rompe el supuesto de visibilidad completa del sujeto y degrada el desempeño de detectores entrenados con datos limpios."
+    },
+    "deteccion_de_objetos_pequenos": {
+      "descripcion": "Trabajadores lejanos que aparecen con baja resolución en la imagen (pocos píxeles).",
+      "implicacion": "YOLO tiende a fallar en escalas pequeñas debido a la estructura de su grid de predicción y la pérdida de información en capas profundas."
+    },
+    "desbalance_de_clases": {
+      "descripcion": "Los trabajadores no conformes (sin casco, sin chaleco) son típicamente escasos en grabaciones reales en comparación con los conformes.",
+      "implicacion": "La clase minoritaria es justamente la clase crítica que más importa detectar; el promedio de métricas puede ocultar mal desempeño en esta clase."
+    }
+  },
+
+  "objetivos": {
+    "objetivo_general": "Entrenar y evaluar un modelo YOLO capaz de detectar trabajadores y clasificar su cumplimiento del EPP en imágenes y video, complementado con un módulo determinista de verificación de cumplimiento.",
+    "objetivos_especificos": [
+      "Entrenar un modelo YOLO ajustado al dominio de seguridad en obras.",
+      "Documentar de forma justificada las decisiones de entrenamiento clave.",
+      "Evaluar cuantitativamente el modelo con métricas estándar y desglose por clase.",
+      "Analizar la robustez del modelo frente a oclusión a distintos niveles.",
+      "Implementar un verificador de cumplimiento basado en reglas como capa de posprocesamiento.",
+      "Reflexionar críticamente sobre las implicaciones éticas del sistema."
+    ]
+  },
+
+  "conjuntos_de_datos": {
+    "principal": {
+      "nombre": "Safety Helmet Detection Dataset",
+      "fuente": "Roboflow Universe (https://roboflow.com)",
+      "tamano_aproximado": "5,000 imágenes",
+      "formato_anotaciones": "Bounding boxes en formato YOLO",
+      "licencia": "CC BY 4.0",
+      "uso_previsto": "Conjunto principal de entrenamiento."
+    },
+    "complementario": {
+      "nombre": "PPE Detection Dataset",
+      "fuente": "Roboflow Universe",
+      "tamano_aproximado": "10,000 imágenes",
+      "cobertura": ["Cascos", "Chalecos", "Guantes"],
+      "uso_previsto": "Aumentar los datos de entrenamiento o realizar evaluación entre conjuntos de datos (cross-dataset)."
+    },
+    "negativos_explicitos": {
+      "nombre": "SHWD (Safety Helmet Wearing Dataset)",
+      "fuente": "GitHub (njvisionpower/Safety-Helmet-Wearing-Dataset)",
+      "caracteristica_clave": "Contiene ejemplos negativos explícitos de 'sin casco'.",
+      "uso_previsto": "Fundamental para entrenar un clasificador de cumplimiento confiable que distinga 'con casco' vs 'sin casco' como clases separadas."
+    }
+  },
+
+  "entregables_requeridos": [
+    {
+      "id": 1,
+      "nombre": "Modelo YOLO ajustado",
+      "requisitos": [
+        "Decisiones de entrenamiento completamente documentadas",
+        "Configuración de anclas (anchors)",
+        "Estrategia de aumento de datos (data augmentation)",
+        "Activación o desactivación del aumento mosaico (mosaic)",
+        "Resolución de entrada utilizada"
+      ]
+    },
+    {
+      "id": 2,
+      "nombre": "Evaluación cuantitativa",
+      "metricas_requeridas": [
+        "mAP@0.5 sobre el conjunto de prueba",
+        "mAP@0.5:0.95 sobre el conjunto de prueba"
+      ],
+      "requisito_adicional": "Desglose por clase (ej. trabajador con casco, trabajador sin casco, chaleco, sin chaleco, etc.)"
+    },
+    {
+      "id": 3,
+      "nombre": "Análisis de robustez ante oclusión",
+      "procedimiento": "Particionar el conjunto de prueba de forma manual o semiautomática según el nivel estimado de oclusión.",
+      "particiones": ["Bajo", "Medio", "Alto"],
+      "reporte_esperado": "Caída de rendimiento entre grupos."
+    },
+    {
+      "id": 4,
+      "nombre": "Verificador de cumplimiento basado en reglas",
+      "naturaleza": "Módulo de posprocesamiento determinista, separado del modelo YOLO.",
+      "entrada": "Detecciones por fotograma producidas por YOLO.",
+      "salida_esperada": [
+        "Tasa de cumplimiento por fotograma",
+        "Marcado (bounding boxes destacados) de los trabajadores clasificados como no conformes"
+      ],
+      "demostracion_requerida": "Secuencia de fotogramas anotados o clip de video corto que muestre el sistema funcionando sobre imágenes de obras no vistas durante el entrenamiento."
+    },
+    {
+      "id": 5,
+      "nombre": "Sección de implicaciones éticas",
+      "extension_minima": "Una página",
+      "ejes_obligatorios": [
+        {
+          "tema": "Balance entre falsos negativos y falsos positivos",
+          "consideraciones": [
+            "Falso negativo: violación de EPP no detectada (riesgo de accidente o muerte).",
+            "Falso positivo: trabajador conforme marcado incorrectamente (sanciones injustas, desconfianza en el sistema, sabotaje del sistema)."
+          ]
+        },
+        {
+          "tema": "Privacidad de los trabajadores",
+          "consideraciones": [
+            "Vigilancia continua del personal.",
+            "Uso secundario de las imágenes capturadas.",
+            "Consentimiento informado y políticas de retención de datos."
+          ]
+        },
+        {
+          "tema": "Sesgos introducidos por la distribución de los datos de entrenamiento",
+          "consideraciones": [
+            "Sesgos geográficos (datasets dominados por ciertas regiones).",
+            "Sesgos demográficos (género, edad, etnicidad de los trabajadores representados).",
+            "Sesgos de condiciones de captura (iluminación, tipo de obra, clima)."
+          ]
+        }
+      ]
+    }
+  ],
+
+  "criterios_implicitos_de_calidad": {
+    "separacion_percepcion_vs_decision": "El modelo YOLO realiza la percepción (detección); el verificador realiza la decisión (cumple / no cumple). Esta separación favorece la auditabilidad y modificabilidad sin reentrenar.",
+    "evaluacion_estratificada": "No basta con el desempeño global; se requiere desglose por clase y por nivel de oclusión para detectar fallas en subgrupos críticos.",
+    "justificacion_de_trade_offs": "Cada decisión técnica (resolución, mosaic, umbral de confianza, política de augmentación) debe argumentarse en términos de su impacto sobre los desafíos del problema (oclusión, objetos pequeños, desbalance).",
+    "eleccion_del_umbral_operativo": "El umbral de confianza del clasificador debe elegirse considerando el costo asimétrico de los errores, no únicamente el mAP.",
+    "reconocimiento_de_limites_del_dataset": "El informe debe reconocer explícitamente las limitaciones de generalización derivadas de la procedencia y composición de los datos."
+  },
+
+  "resultados_esperados_finales": {
+    "artefactos": [
+      "Pesos entrenados del modelo YOLO",
+      "Reporte de métricas (global, por clase y por nivel de oclusión)",
+      "Código del verificador de cumplimiento basado en reglas",
+      "Demostración visual sobre datos no vistos (imágenes o video corto)",
+      "Informe escrito con justificación técnica y sección ética"
+    ],
+    "nivel_de_madurez_esperado": "Sistema que demuestre comprensión socio-técnica: no solo un modelo con buenas métricas, sino una solución defensible para despliegue en un entorno real con vidas humanas en juego."
+  }
+}

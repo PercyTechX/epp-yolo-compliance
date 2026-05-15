@@ -1,0 +1,54 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+.conda/
+
+# Cachés de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Artefactos de Ultralytics y entrenamientos
+runs/
+*.pt
+*.onnx
+*.engine
+*.torchscript
+
+# Datasets crudos y remapeados (se descargan manualmente, ver README)
+data/raw/
+data/interim/
+data/processed/
+!data/README.md
+
+# Reportes y figuras generadas
+reports/figures/
+reports/tables/
+!reports/README.md
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Configuración local de Claude Code
+.claude/
+
+# Logs y temporales
+*.log
+tmp/
+temp/

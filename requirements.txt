@@ -1,0 +1,23 @@
+# Stack tecnológico del proyecto.
+# PyTorch y NumPy se instalan como dependencias transitivas de Ultralytics.
+# Las herramientas opcionales (CVAT, Label Studio, W&B) no se listan aquí;
+# se documentan en el README como instalaciones externas si se requieren.
+
+# Framework YOLO
+ultralytics>=8.0.0
+
+# Procesamiento de datos e imágenes
+pandas>=2.0.0
+opencv-python>=4.8.0
+pillow>=10.0.0
+pyyaml>=6.0
+
+# Visualización y rendering
+matplotlib>=3.7.0
+supervision>=0.16.0
+
+# Testing del verificador de cumplimiento
+pytest>=7.4.0
+
+# Tracking de experimentos (integrado por defecto en Ultralytics)
+tensorboard>=2.14.0

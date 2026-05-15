@@ -1,0 +1,191 @@
+{
+  "metadata": {
+    "titulo": "Stack tecnológico para Detección de Cumplimiento de EPP con YOLO",
+    "idioma": "Español",
+    "filosofia": "Cada librería tiene un dueño claro en el plan. Sin redundancias ni dependencias decorativas.",
+    "version": "1.0"
+  },
+
+  "lenguaje_y_entorno_base": {
+    "lenguaje": {
+      "nombre": "Python",
+      "version_recomendada": "3.10 o 3.11",
+      "justificacion": "Compatibilidad probada con Ultralytics y PyTorch 2.x. La versión 3.12 todavía presenta problemas puntuales de wheels en librerías de visión por computadora."
+    },
+    "gestor_de_entornos": {
+      "opciones": ["venv", "conda"],
+      "justificacion": "Aislamiento de dependencias y reproducibilidad del entorno entre integrantes."
+    }
+  },
+
+  "framework_de_deep_learning_y_yolo": {
+    "framework_base": {
+      "nombre": "PyTorch",
+      "version": "2.x",
+      "rol": "Backend de cómputo tensorial y autodiferenciación. Lo arrastra Ultralytics como dependencia."
+    },
+    "implementacion_yolo": {
+      "nombre": "Ultralytics",
+      "version": "8.x",
+      "rol": "Implementación oficial de YOLOv8 con CLI y API Python. Decisión central del proyecto.",
+      "justificacion": "Madurez del tooling, documentación extensa, soporte de la comunidad y compatibilidad probada con Colab y Kaggle."
+    },
+    "soporte_gpu": {
+      "nombre": "CUDA",
+      "versiones_recomendadas": ["11.8", "12.1"],
+      "nota": "Elegir según el driver de la GPU disponible."
+    }
+  },
+
+  "procesamiento_de_datos_e_imagenes": [
+    {
+      "nombre": "NumPy",
+      "rol": "Operaciones numéricas y geometría de bounding boxes (IoU, contención, intersecciones)."
+    },
+    {
+      "nombre": "Pandas",
+      "rol": "Manifiestos de splits train/val/test, tablas de métricas y análisis de distribución de clases."
+    },
+    {
+      "nombre": "OpenCV (opencv-python)",
+      "rol": "Lectura y escritura de video, extracción de frames, operaciones de imagen y rendering de bboxes en inferencia."
+    },
+    {
+      "nombre": "Pillow",
+      "rol": "Utilidades varias de manipulación de imágenes en formato PIL, requerido por algunas dependencias."
+    },
+    {
+      "nombre": "PyYAML",
+      "rol": "Lectura y escritura de archivos de configuración de Ultralytics (data.yaml, hyp.yaml)."
+    }
+  ],
+
+  "augmentaciones": {
+    "estrategia": "Usar exclusivamente las augmentaciones nativas de Ultralytics.",
+    "cubiertas_nativamente": [
+      "Mosaic",
+      "MixUp",
+      "Variación HSV",
+      "Flip horizontal y vertical",
+      "Traslación y escala",
+      "Random Erasing",
+      "Rotación"
+    ],
+    "decision_explicita": "No agregar Albumentations en esta versión del proyecto, ya que las augmentaciones nativas cubren las necesidades identificadas (oclusión, variabilidad de escala, robustez a iluminación)."
+  },
+
+  "tracking_de_experimentos": {
+    "principal": {
+      "nombre": "TensorBoard",
+      "rol": "Logging de métricas durante entrenamiento. Integrado por defecto en Ultralytics.",
+      "justificacion": "Suficiente para los 4 experimentos comparativos de la fase 3."
+    },
+    "alternativa_opcional": {
+      "nombre": "Weights & Biases (W&B)",
+      "rol": "Visualización colaborativa de experimentos en la nube.",
+      "cuando_usar": "Si el equipo prefiere compartir dashboards en tiempo real o registrar más metadatos."
+    }
+  },
+
+  "visualizacion_y_rendering": {
+    "graficos_de_reporte": {
+      "nombre": "Matplotlib",
+      "rol": "Matrices de confusión, curvas de pérdida, distribución de tamaños de bbox y figuras del informe final."
+    },
+    "anotacion_de_detecciones": {
+      "nombre": "Supervision",
+      "fuente": "Librería de Roboflow",
+      "rol": "Anotadores de bboxes coloreados, utilidades para el verificador de cumplimiento y rendering del video demo.",
+      "justificacion": "Mucho más limpio y declarativo que dibujar a mano con OpenCV puro."
+    }
+  },
+
+  "procesamiento_de_video": {
+    "herramienta_de_sistema": {
+      "nombre": "ffmpeg",
+      "rol": "Conversión de formatos, compresión y recortes del video demo final."
+    },
+    "procesamiento_frame_a_frame": {
+      "nombre": "OpenCV",
+      "rol": "Extracción de frames del video, inferencia frame a frame con el modelo y rearmado del video anotado."
+    }
+  },
+
+  "verificador_de_cumplimiento": {
+    "tecnologia_principal": {
+      "nombre": "Python + NumPy",
+      "rol": "Geometría de asociación (IoU, contención, posición relativa cabeza-persona y chaleco-persona).",
+      "justificacion": "No requiere librería adicional; mantiene el módulo determinista, simple y auditable."
+    },
+    "testing": {
+      "nombre": "pytest",
+      "rol": "Casos de prueba unitarios sobre detecciones sintéticas (mínimo 10, según fase 4 del plan)."
+    }
+  },
+
+  "control_de_versiones_y_colaboracion": {
+    "herramienta": "Git",
+    "plataformas": ["GitHub", "GitLab"],
+    "reglas_clave": [
+      "Incluir .gitignore que excluya runs/, checkpoints .pt y datasets crudos.",
+      "Datasets enlazados desde el README, no versionados en el repositorio.",
+      "Configuraciones (data.yaml, hyp.yaml) sí versionadas para reproducibilidad."
+    ]
+  },
+
+  "anotacion_auxiliar_para_oclusion": {
+    "contexto": "Solo necesario para revisar el 10% manual del set de prueba en la partición por nivel de oclusión.",
+    "opciones": [
+      {
+        "nombre": "CVAT",
+        "tipo": "Plataforma web open source.",
+        "ventaja": "Interfaz robusta para anotación profesional."
+      },
+      {
+        "nombre": "Label Studio",
+        "tipo": "Plataforma web open source.",
+        "ventaja": "Más ligera y fácil de desplegar localmente."
+      },
+      {
+        "nombre": "Script propio en Python + OpenCV",
+        "tipo": "Alternativa minimalista.",
+        "ventaja": "Cero configuración; muestra la imagen y pide la etiqueta de oclusión por teclado."
+      }
+    ]
+  },
+
+  "reporte_y_entregables": {
+    "analisis_exploratorio": {
+      "nombre": "Jupyter Notebooks",
+      "rol": "Generación de tablas, figuras y exploración interactiva de resultados."
+    },
+    "documentacion_de_repositorio": {
+      "nombre": "Markdown",
+      "rol": "README del repositorio con instrucciones de reproducibilidad."
+    },
+    "informe_escrito": {
+      "opciones": ["LaTeX (Overleaf)", "Google Docs", "Microsoft Word"],
+      "criterio_de_eleccion": "Lo que pida el curso o lo que el equipo maneje con más soltura."
+    }
+  },
+
+  "fuera_de_alcance_pero_registrado_como_extension_futura": [
+    {
+      "tecnologia": "ByteTrack",
+      "uso_potencial": "Tracking temporal de trabajadores entre fotogramas para estabilizar el verificador y reducir parpadeo."
+    },
+    {
+      "tecnologia": "Supervision Tracker",
+      "uso_potencial": "Alternativa más simple a ByteTrack, integrada con la librería Supervision."
+    },
+    {
+      "tecnologia": "ONNX Runtime / TensorRT",
+      "uso_potencial": "Optimización para despliegue en tiempo real o hardware embebido."
+    }
+  ],
+
+  "instalacion_recomendada_resumen": {
+    "comando_principal": "pip install ultralytics opencv-python supervision pandas matplotlib pyyaml pytest",
+    "nota": "PyTorch y NumPy son instalados como dependencias por Ultralytics. Para GPU verificar que la versión de CUDA del sistema sea compatible con la rueda de PyTorch instalada."
+  }
+}

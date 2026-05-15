@@ -1,0 +1,43 @@
+# Hiperparámetros del entrenamiento baseline (Fase 2 del plan).
+# Modelo: YOLOv8s, resolución 640, mosaico activo por defecto.
+# Este archivo se carga con `model.train(cfg=...)` desde el notebook
+# 01_baseline_train.ipynb.
+
+# Hiperparámetros base
+model: yolov8s.pt
+epochs: 80
+imgsz: 640
+batch: 16
+patience: 20
+optimizer: SGD
+lr0: 0.01
+lrf: 0.01
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3.0
+warmup_momentum: 0.8
+warmup_bias_lr: 0.1
+
+# Pérdidas (defaults de Ultralytics)
+box: 7.5
+cls: 0.5
+dfl: 1.5
+
+# Augmentaciones nativas de Ultralytics. Defaults razonables para baseline.
+# Se mantienen activas para tener una referencia honesta antes de los
+# experimentos de la fase 3.
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 0.0
+translate: 0.1
+scale: 0.5
+shear: 0.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+mosaic: 1.0
+mixup: 0.0
+copy_paste: 0.0
+erasing: 0.0
+close_mosaic: 0

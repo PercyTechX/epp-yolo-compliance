@@ -1,0 +1,39 @@
+# Experimento B (Fase 3): añadir Random Erasing y MixUp moderado para
+# simular oclusión y ganar robustez. Resolución igual al baseline.
+#
+# Notebook: 03_exp_B_augmentation.ipynb.
+
+model: yolov8s.pt
+epochs: 80
+imgsz: 640
+batch: 16
+patience: 20
+optimizer: SGD
+lr0: 0.01
+lrf: 0.01
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3.0
+warmup_momentum: 0.8
+warmup_bias_lr: 0.1
+
+box: 7.5
+cls: 0.5
+dfl: 1.5
+
+# Augmentaciones aumentadas. Random Erasing y MixUp activos.
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 0.0
+translate: 0.1
+scale: 0.5
+shear: 0.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+mosaic: 1.0
+mixup: 0.15              # MixUp moderado
+copy_paste: 0.0
+erasing: 0.4             # Random Erasing
+close_mosaic: 0

@@ -1,0 +1,24 @@
+# Configuración de datos en formato Ultralytics YOLOv8.
+#
+# `path` es la raíz del dataset procesado. En entorno local apunta a
+# `data/processed/` relativa al root del repo. En Kaggle, sobrescribir esta
+# ruta desde el notebook para apuntar al Kaggle Dataset montado, por ejemplo:
+#   /kaggle/input/epp-yolo-processed
+#
+# Estructura esperada bajo `path`:
+#   images/train, images/val, images/test
+#   labels/train, labels/val, labels/test
+
+path: ../data/processed
+train: images/train
+val: images/val
+test: images/test
+
+# Taxonomía unificada (5 clases). El orden DEBE coincidir con los ids
+# generados por src/data/remap_labels.py y con configs/class_mapping.yaml.
+names:
+  0: head_with_helmet
+  1: head_without_helmet
+  2: person
+  3: vest
+  4: no_vest_person

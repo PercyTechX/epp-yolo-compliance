@@ -1,0 +1,80 @@
+# Tabla de mapeo de clases originales -> taxonomía unificada del proyecto.
+#
+# Taxonomía unificada (5 clases):
+#   0: head_with_helmet
+#   1: head_without_helmet
+#   2: person
+#   3: vest
+#   4: no_vest_person
+#
+# Convenciones de este archivo:
+#   - Cada entrada bajo `datasets.<nombre>.mapping` mapea un nombre o id
+#     de clase del dataset original a un id de la taxonomía unificada.
+#   - Si una clase original NO existe en la taxonomía unificada se asigna
+#     a `null` y el script de remapeo descartará esas instancias.
+#   - Si el dataset no provee una clase de la taxonomía, simplemente no
+#     aparece en `mapping` (no se genera por inferencia).
+#
+# Las claves originales (helmet, no-helmet, etc.) son los nombres que
+# vienen en los `data.yaml` de cada dataset. Si al descargar los datos
+# los nombres no coinciden exactamente, ajustar este archivo antes de
+# remapear (es la única tabla de verdad).
+
+unified_classes:
+  0: head_with_helmet
+  1: head_without_helmet
+  2: person
+  3: vest
+  4: no_vest_person
+
+datasets:
+
+  shwd:
+    description: >
+      Safety Helmet (re-subida en Roboflow Universe, workspace lisa-group-de).
+      Aporta refuerzo de cabeza sin casco y bboxes de cuerpo completo.
+      OJO: el SHWD original de njvisionpower usaba `person` para cabezas
+      sin casco; esta re-subida usa la semántica estándar (`head` = cabeza
+      sin casco, `person` = cuerpo completo).
+    source_format: yolo
+    mapping:
+      helmet: head_with_helmet
+      head: head_without_helmet
+      person: person
+    discard_classes:
+      - others
+
+  helmet:
+    description: >
+      Safety Helmet Detection (Roboflow Universe). Volumen y diversidad
+      de escenas con casco.
+    source_format: yolo
+    mapping:
+      helmet: head_with_helmet
+      head: head_without_helmet
+      person: person
+    discard_classes: []
+
+  ppe:
+    description: >
+      PPE Detection (Roboflow Universe). Aporta principalmente chalecos.
+      Las clases de guantes se descartan (no están en la taxonomía).
+    source_format: yolo
+    mapping:
+      helmet: head_with_helmet
+      hardhat: head_with_helmet
+      no-helmet: head_without_helmet
+      no_hardhat: head_without_helmet
+      person: person
+      worker: person
+      vest: vest
+      safety-vest: vest
+      reflective-vest: vest
+      no-vest: no_vest_person
+      no_vest: no_vest_person
+    discard_classes:
+      - gloves
+      - glove
+      - boots
+      - mask
+      - goggles
