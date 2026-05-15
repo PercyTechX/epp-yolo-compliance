@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import List
 
 OUT_DIR = Path(__file__).resolve().parent
-REPO_URL_PLACEHOLDER = "https://github.com/<usuario>/<repo>.git"
+REPO_URL_PLACEHOLDER = "https://github.com/PercyTechX/epp-yolo-compliance.git"
 
 NB_VERSION = 4
 
