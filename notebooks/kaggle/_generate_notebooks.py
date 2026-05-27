@@ -176,6 +176,71 @@ def cell_save_artifacts(experiment_name: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def cell_eval_test_set() -> dict:
+    """Celda de evaluación del modelo entrenado sobre el split de test."""
+    return code(
+        "# Evaluación final del modelo elegido sobre el split test (no visto).",
+        "# Auto-detecta tanto la ruta del Kaggle Dataset como el best.pt en /kaggle/input/.",
+        "import os, yaml, json",
+        "from pathlib import Path",
+        "from ultralytics import YOLO",
+        "",
+        "",
+        "def find_dataset_root() -> str:",
+        '    """Localiza la raíz del Kaggle Dataset processed (images/+labels/)."""',
+        '    for root, dirs, _ in os.walk("/kaggle/input"):',
+        '        if "images" in dirs and "labels" in dirs:',
+        '            if os.path.isdir(f"{root}/images/test"):',
+        "                return root",
+        '    raise RuntimeError("Dataset processed no encontrado bajo /kaggle/input/")',
+        "",
+        "",
+        "def find_weights() -> str:",
+        '    """Localiza un best.pt cualquiera bajo /kaggle/input/."""',
+        '    for root, _, files in os.walk("/kaggle/input"):',
+        '        if "best.pt" in files:',
+        '            return os.path.join(root, "best.pt")',
+        '    raise RuntimeError("best.pt no encontrado bajo /kaggle/input/")',
+        "",
+        "",
+        "DATA_ROOT = find_dataset_root()",
+        "WEIGHTS = find_weights()",
+        'print(f"Dataset montado en: {DATA_ROOT}")',
+        'print(f"Pesos:               {WEIGHTS}")',
+        "",
+        "# Parchear data.yaml con la ruta real de Kaggle.",
+        'data_cfg = yaml.safe_load(Path("configs/data.yaml").read_text())',
+        'data_cfg["path"] = DATA_ROOT',
+        'patched = Path("/kaggle/working/data_patched.yaml")',
+        'patched.write_text(yaml.safe_dump(data_cfg, sort_keys=False))',
+        "",
+        "model = YOLO(WEIGHTS)",
+        "metrics = model.val(",
+        "    data=str(patched),",
+        '    split="test",',
+        '    project="/kaggle/working/runs",',
+        '    name="test_eval_exp_D",',
+        "    save_json=True,",
+        "    plots=True,",
+        ")",
+        "",
+        "# Resumen estructurado para descargar.",
+        "summary = {",
+        '    "mAP50": float(metrics.box.map50),',
+        '    "mAP50_95": float(metrics.box.map),',
+        '    "precision": float(metrics.box.mp),',
+        '    "recall": float(metrics.box.mr),',
+        '    "per_class": {',
+        '        str(cid): {',
+        '            "mAP50": float(metrics.box.maps[cid] if cid < len(metrics.box.maps) else 0.0),',
+        '        } for cid in range(len(data_cfg["names"]))',
+        "    },",
+        "}",
+        'Path("/kaggle/working/test_metrics.json").write_text(json.dumps(summary, indent=2))',
+        'print(json.dumps(summary, indent=2))',
+    )
+
+
 NOTEBOOKS = [
     {
         "filename": "01_baseline_train.ipynb",
@@ -244,6 +309,18 @@ NOTEBOOKS = [
         ),
         "hyp": None,
         "exp_name": "demo",
+    },
+    {
+        "filename": "07_test_evaluation.ipynb",
+        "title": "Evaluación final (Fase 5): modelo D sobre test set",
+        "description": (
+            "Carga el modelo final entrenado (best.pt subido como Kaggle Dataset) "
+            "y lo evalúa sobre el split test del dataset epp-yolo-processed. "
+            "Reporta mAP global y por clase + matriz de confusión + curvas P/R."
+        ),
+        "hyp": None,
+        "exp_name": "test_eval",
+        "is_eval": True,
     },
 ]
 
@@ -324,10 +401,32 @@ def build_demo_notebook(spec: dict) -> dict:
     return base_notebook(cells)
 
 
+def build_eval_notebook(spec: dict) -> dict:
+    """Construye el notebook de evaluación sobre test set (notebook 07)."""
+    cells = [
+        md(
+            f"# {spec['title']}",
+            "",
+            spec["description"],
+            "",
+            "> **Notebook delgado**: solo orquesta. La lógica vive en `src/` del repositorio.",
+            "",
+            "**Requisitos:**",
+            "- Adjuntar el dataset `epp-yolo-processed` como Input.",
+            "- Adjuntar un dataset que contenga el `best.pt` del modelo a evaluar.",
+        ),
+        cell_setup(),
+        cell_eval_test_set(),
+    ]
+    return base_notebook(cells)
+
+
 def main() -> None:
-    """Escribe los 6 notebooks scaffold en disco."""
+    """Escribe los notebooks scaffold en disco."""
     for spec in NOTEBOOKS:
-        if spec["hyp"] is None:
+        if spec.get("is_eval"):
+            nb = build_eval_notebook(spec)
+        elif spec["hyp"] is None:
             nb = build_demo_notebook(spec)
         else:
             nb = build_train_notebook(spec)

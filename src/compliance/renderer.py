@@ -75,13 +75,23 @@ def _annotate_with_supervision(
         if not verdicts:
             continue
         xyxy = np.array([v.person_box for v in verdicts], dtype=float)
-        detections = sv.Detections(xyxy=xyxy)
+        # class_id es requerido por supervision >=0.20 para resolver el color
+        # vía `ColorLookup.CLASS`. Como acá todos los bboxes del bucket comparten
+        # color (un mismo estado), asignamos la misma clase ficticia (0) a todos.
+        class_ids = np.zeros(len(verdicts), dtype=int)
+        detections = sv.Detections(xyxy=xyxy, class_id=class_ids)
         color_bgr = _color_for(status)
         color = sv.Color(r=color_bgr[2], g=color_bgr[1], b=color_bgr[0])
-        box_annotator = sv.BoxAnnotator(color=color, thickness=2)
+        box_annotator = sv.BoxAnnotator(
+            color=color, thickness=2, color_lookup=sv.ColorLookup.INDEX
+        )
         image = box_annotator.annotate(scene=image, detections=detections)
 
-        label_annotator = sv.LabelAnnotator(color=color, text_color=sv.Color.WHITE)
+        label_annotator = sv.LabelAnnotator(
+            color=color,
+            text_color=sv.Color.WHITE,
+            color_lookup=sv.ColorLookup.INDEX,
+        )
         labels = [_label_for(v) for v in verdicts]
         image = label_annotator.annotate(
             scene=image, detections=detections, labels=labels
