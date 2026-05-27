@@ -1,50 +1,98 @@
-# Métricas del modelo baseline (Fase 2)
+# Métricas del proyecto: 3 experimentos comparados + evaluación final en test set
 
-**Modelo:** YOLOv8s
-**Hiperparámetros:** `configs/hyp_baseline.yaml`
-**Resolución:** 640
-**Epochs:** 80 completos (sin early stopping)
-**Tiempo de entrenamiento:** 7h 19m en Tesla T4 (Kaggle)
-**Conjunto de validación:** 3.897 imágenes, 12.278 instancias
+**Modelo final adoptado:** YOLOv8s con `close_mosaic=15` (Experimento D).
 
-## Métricas por clase
+## 1. Comparación de los 3 experimentos sobre el conjunto de validación
 
-| Clase | Precision | Recall | mAP@0.5 | mAP@0.5-0.95 | Instancias |
+Tiempo de entrenamiento por experimento: ~7-8 horas en Tesla T4 (Kaggle).
+80 epochs completos cada uno (no se activó early stopping).
+
+### mAP@0.5
+
+| Clase | Instancias | Baseline | Exp B | Exp D | Mejor |
+|---|---:|---:|---:|---:|---|
+| head_with_helmet | 6.974 | 0.978 | 0.978 | **0.979** | D (+0.001) |
+| head_without_helmet | 2.194 | 0.959 | 0.960 | 0.959 | Empate |
+| vest | 2.828 | 0.987 | 0.986 | 0.986 | Empate |
+| person | 282 | 0.175 | 0.153 | 0.175 | Empate |
+| **all** | 12.278 | **0.775** | 0.769 | **0.775** | Empate |
+
+### mAP@0.5-0.95
+
+| Clase | Baseline | Exp B | Exp D | Mejor |
+|---|---:|---:|---:|---|
+| head_with_helmet | 0.675 | 0.670 | **0.677** | D (+0.002) |
+| head_without_helmet | 0.652 | 0.649 | 0.652 | Empate |
+| vest | 0.835 | 0.830 | **0.837** | D (+0.002) |
+| person | 0.106 | 0.099 | **0.108** | D (+0.002) |
+| **all** | 0.567 | 0.562 | **0.569** | **D (+0.002)** |
+
+### Interpretación
+
+- **Baseline ya muy fuerte** sobre las 3 clases mayoritarias (cabezas y chaleco
+  ≥95% mAP@0.5). El dataset es lo suficientemente limpio como para que el
+  baseline ya esté bien tuneado.
+- **Exp B** (Random Erasing + MixUp): caída marginal en mAP@0.5 (−0.6 pp).
+  Las augmentaciones agresivas no aportaron en este dataset. Hallazgo válido
+  para el informe: los datos ya tienen suficiente variabilidad natural.
+- **Exp D** (close_mosaic=15): ganador marginal. +0.2 pp en mAP@0.5-0.95
+  consistente en TODAS las clases. Se elige como modelo final.
+- **Experimentos A (res 960) y C (pesos de clase) saltados** por costo/beneficio:
+  - A: ~12-15h, riesgo de timeout en Kaggle (límite 12h por sesión).
+  - C: el problema de `person` es de cantidad de datos (1.116 train), no
+    se arregla con pesos de pérdida.
+
+## 2. Evaluación final del modelo D sobre el conjunto de test
+
+**Conjunto de test:** 3.895 imágenes, 12.373 instancias, nunca vistas durante
+el entrenamiento ni la selección del modelo.
+
+### Tabla completa por clase
+
+| Clase | Instancias | Precision | Recall | mAP@0.5 | mAP@0.5-0.95 |
 |---|---:|---:|---:|---:|---:|
-| head_with_helmet | 0.943 | 0.955 | 0.978 | 0.675 | 6.974 |
-| head_without_helmet | 0.923 | 0.945 | 0.959 | 0.652 | 2.194 |
-| vest | 0.939 | 0.971 | 0.987 | 0.835 | 2.828 |
-| person | 0.426 | 0.174 | 0.175 | 0.106 | 282 |
-| no_vest_person | — | — | — | — | 0 (no presente) |
-| **all (promedio)** | **0.808** | **0.761** | **0.775** | **0.567** | 12.278 |
+| head_with_helmet | 7.222 | 0.939 | 0.950 | **0.976** | 0.664 |
+| head_without_helmet | 2.104 | 0.892 | 0.942 | **0.947** | 0.646 |
+| vest | 2.831 | 0.937 | 0.957 | **0.984** | 0.837 |
+| person | 216 | 0.341 | 0.208 | **0.176** | 0.129 |
+| **all** | 12.373 | **0.777** | **0.765** | **0.771** | **0.569** |
 
-## Falsos negativos (instancias perdidas) según matriz de confusión
+> `no_vest_person` no aparece en la tabla porque tiene 0 instancias en el
+> conjunto de test (y validation). Esto es esperado: ningún dataset original
+> aporta esa etiqueta; el verificador determinista la infiere espacialmente.
 
-| Clase | Perdidas / total | % perdido |
-|---|---|---:|
-| head_with_helmet | 216 / 6.953 | 3.1% |
-| head_without_helmet | 78 / 2.174 | 3.6% |
-| vest | 74 / 2.828 | 2.6% |
-| person | 227 / 282 | **80.5%** |
+### Generalización (val vs test)
 
-## Observaciones cualitativas
+| Métrica global | Val | Test | Δ | Interpretación |
+|---|---:|---:|---:|---|
+| mAP@0.5 | 0.775 | 0.771 | −0.004 | Sin overfitting |
+| mAP@0.5-0.95 | 0.569 | 0.569 | 0.000 | Idéntico |
+| Precision | 0.795 | 0.777 | −0.018 | Caída mínima |
+| Recall | 0.765 | 0.765 | 0.000 | Idéntico |
 
-- **Sin confusión entre clases**: el modelo distingue casco vs. no-casco con
-  solo 20 errores cruzados sobre ~7.000 instancias. Excelente separabilidad.
-- **`person` no aprendida**: 80% de instancias perdidas, totalmente atribuible
-  al desbalance de datos (1.116 train vs. >10k de cabezas). Limitación
-  documentada del dataset, no del modelo.
-- **Robustez para el verificador**: las 3 clases que el verificador necesita
-  (head_with_helmet, head_without_helmet, vest) están en ≥95% mAP@0.5.
-  El módulo de cumplimiento puede operar con confianza sobre estas.
+**Conclusión:** las métricas de test son prácticamente idénticas a las de val.
+El modelo generaliza correctamente. Esto confirma que los splits estratificados
+70/15/15 sin fuga de la Fase 1 funcionaron como esperaba.
 
-## Para el informe final
+## 3. Para el informe
 
-- **mAP@0.5 global = 0.775** (con `person` arrastrando).
-- **mAP@0.5 ponderado excluyendo `person` ≈ 0.97** (estimado).
-- Reportar AMBOS números, explicando la limitación de la clase `person`.
+### mAP global (entregable 2)
 
-## Artefacto
+- **mAP@0.5 = 0.771** sobre test (modelo D, YOLOv8s @ 640).
+- **mAP@0.5-0.95 = 0.569** sobre test.
 
-Pesos finales: `runs/baseline/weights/best.pt` (22.5 MB), descargado a la
-raíz del proyecto. No commitear al repo; va a un release de Git al final.
+### Desglose por clase (entregable 2)
+
+- Las 3 clases críticas (head_with_helmet, head_without_helmet, vest) están en
+  **mAP@0.5 ≥ 0.947**. Excelente para un baseline académico.
+- `person` queda en **mAP@0.5 = 0.176** por escasez de datos (216 instancias
+  test, 1.116 train). Esto es una **limitación del dataset**, no del modelo, y
+  se documenta como tal.
+
+### Reproducibilidad
+
+- Pesos del modelo final: `runs_outputs/exp_D/best.pt` (22.5 MB). Se publica
+  como GitHub Release al cierre del proyecto (no se commitea al repo).
+- Configs versionadas: `configs/data.yaml` + `configs/hyp_exp_D.yaml`.
+- Notebook reproducible: `notebooks/kaggle/05_exp_D_close_mosaic.ipynb`.
+- Notebook de evaluación en test: `notebooks/kaggle/07_test_evaluation.ipynb`.

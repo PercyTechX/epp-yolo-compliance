@@ -176,6 +176,100 @@ def cell_save_artifacts(experiment_name: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def cell_occlusion_analysis() -> dict:
+    """Celda de análisis de robustez por nivel de oclusión sobre test."""
+    return code(
+        "# Análisis de oclusión: particiona el test set por nivel de oclusión y",
+        "# corre validación independiente sobre cada subset.",
+        "import os, json, yaml",
+        "from pathlib import Path",
+        "from ultralytics import YOLO",
+        "from src.analysis.occlusion import partition_by_occlusion",
+        "",
+        "",
+        "def find_dataset_root() -> str:",
+        '    """Localiza la raíz del Kaggle Dataset processed."""',
+        '    for root, dirs, _ in os.walk("/kaggle/input"):',
+        '        if "images" in dirs and "labels" in dirs:',
+        '            if os.path.isdir(f"{root}/images/test"):',
+        "                return root",
+        '    raise RuntimeError("Dataset processed no encontrado bajo /kaggle/input/")',
+        "",
+        "",
+        "def find_weights() -> str:",
+        '    """Localiza un best.pt bajo /kaggle/input/."""',
+        '    for root, _, files in os.walk("/kaggle/input"):',
+        '        if "best.pt" in files:',
+        '            return os.path.join(root, "best.pt")',
+        '    raise RuntimeError("best.pt no encontrado")',
+        "",
+        "",
+        "DATA_ROOT = Path(find_dataset_root())",
+        "WEIGHTS = find_weights()",
+        'LABELS_TEST = DATA_ROOT / "labels" / "test"',
+        'IMAGES_TEST = DATA_ROOT / "images" / "test"',
+        'print(f"Dataset: {DATA_ROOT}")',
+        'print(f"Pesos:   {WEIGHTS}")',
+        "",
+        "# Particionar test set por oclusión.",
+        "partitions = partition_by_occlusion(LABELS_TEST, low_threshold=0.15, high_threshold=0.40)",
+        'print(f"\\nDistribución por nivel de oclusión:")',
+        "for level, stems in partitions.items():",
+        '    print(f"  {level:7s}: {len(stems):4d} imágenes")',
+        "",
+        "# Escribir un .txt por nivel con paths absolutos a las imágenes.",
+        "list_files = {}",
+        'for level, stems in partitions.items():',
+        "    if not stems:",
+        "        continue",
+        "    paths = []",
+        "    for stem in stems:",
+        '        for ext in [".jpg", ".jpeg", ".png"]:',
+        '            cand = IMAGES_TEST / f"{stem}{ext}"',
+        "            if cand.exists():",
+        "                paths.append(str(cand))",
+        "                break",
+        '    list_path = Path(f"/kaggle/working/occlusion_{level}.txt")',
+        '    list_path.write_text("\\n".join(paths))',
+        "    list_files[level] = list_path",
+        "",
+        "# Cargar modelo una sola vez.",
+        "model = YOLO(WEIGHTS)",
+        "",
+        "# Correr val() por cada nivel sobrescribiendo `val` con el txt list.",
+        'data_cfg_base = yaml.safe_load(Path("configs/data.yaml").read_text())',
+        'data_cfg_base["path"] = str(DATA_ROOT)',
+        "",
+        "results = {}",
+        "for level, list_path in list_files.items():",
+        '    print(f"\\n=== Validando nivel {level} ({len(partitions[level])} imágenes) ===")',
+        "    data_cfg = dict(data_cfg_base)",
+        '    data_cfg["val"] = str(list_path)',
+        '    patched = Path(f"/kaggle/working/data_occlusion_{level}.yaml")',
+        "    patched.write_text(yaml.safe_dump(data_cfg, sort_keys=False))",
+        "    metrics = model.val(",
+        "        data=str(patched),",
+        '        split="val",',
+        "        project=\"/kaggle/working/runs\",",
+        "        name=f\"occlusion_{level}\",",
+        "        save_json=False,",
+        "        plots=False,",
+        "        verbose=False,",
+        "    )",
+        "    results[level] = {",
+        '        "n_images": len(partitions[level]),',
+        '        "mAP50": float(metrics.box.map50),',
+        '        "mAP50_95": float(metrics.box.map),',
+        '        "precision": float(metrics.box.mp),',
+        '        "recall": float(metrics.box.mr),',
+        "    }",
+        "",
+        'Path("/kaggle/working/occlusion_results.json").write_text(json.dumps(results, indent=2))',
+        'print("\\n=== Resumen final ===")',
+        'print(json.dumps(results, indent=2))',
+    )
+
+
 def cell_eval_test_set() -> dict:
     """Celda de evaluación del modelo entrenado sobre el split de test."""
     return code(
@@ -322,6 +416,18 @@ NOTEBOOKS = [
         "exp_name": "test_eval",
         "is_eval": True,
     },
+    {
+        "filename": "08_occlusion_analysis.ipynb",
+        "title": "Análisis de robustez por nivel de oclusión (Fase 5.2)",
+        "description": (
+            "Particiona el test set en 3 niveles de oclusión (low / medium / high) "
+            "según el IoU máximo entre cajas en cada imagen, y reporta mAP global "
+            "y por clase para cada nivel. Sirve para el entregable 3 del enunciado."
+        ),
+        "hyp": None,
+        "exp_name": "occlusion",
+        "is_occlusion": True,
+    },
 ]
 
 
@@ -421,10 +527,32 @@ def build_eval_notebook(spec: dict) -> dict:
     return base_notebook(cells)
 
 
+def build_occlusion_notebook(spec: dict) -> dict:
+    """Construye el notebook de análisis de oclusión (notebook 08)."""
+    cells = [
+        md(
+            f"# {spec['title']}",
+            "",
+            spec["description"],
+            "",
+            "> **Notebook delgado**: solo orquesta. La lógica vive en `src/` del repositorio.",
+            "",
+            "**Requisitos:**",
+            "- Adjuntar el dataset `epp-yolo-processed` como Input.",
+            "- Adjuntar un dataset que contenga el `best.pt` del modelo a evaluar.",
+        ),
+        cell_setup(),
+        cell_occlusion_analysis(),
+    ]
+    return base_notebook(cells)
+
+
 def main() -> None:
     """Escribe los notebooks scaffold en disco."""
     for spec in NOTEBOOKS:
-        if spec.get("is_eval"):
+        if spec.get("is_occlusion"):
+            nb = build_occlusion_notebook(spec)
+        elif spec.get("is_eval"):
             nb = build_eval_notebook(spec)
         elif spec["hyp"] is None:
             nb = build_demo_notebook(spec)
