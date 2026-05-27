@@ -46,6 +46,9 @@ reports/tables/*.jpg
 # Video demo (los .mp4 son pesados, se publican en el release si es necesario)
 demo_video/
 
+# Material de comparación de terceros (NO es producto de este trabajo)
+OtroEnfoque/
+
 # Sistema operativo
 .DS_Store
 Thumbs.db
