@@ -1,4 +1,5 @@
-\documentclass[11pt,a4paper]{article}
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
 
 % ============================================================
 % Paquetes
@@ -6,20 +7,17 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[spanish,es-tabla]{babel}
-\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{array}
 \usepackage{tabularx}
-\usepackage{caption}
 \usepackage{subcaption}
+\usepackage{textcomp}
 \usepackage{xcolor}
-\usepackage{hyperref}
 \usepackage{listings}
-\usepackage{amsmath}
-\usepackage{enumitem}
-\usepackage{fancyhdr}
-\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{url}
 
 % ============================================================
 % Hyperlinks
@@ -29,8 +27,6 @@
     linkcolor=blue!60!black,
     urlcolor=blue!60!black,
     citecolor=blue!60!black,
-    pdftitle={Detección de Cumplimiento de EPP con YOLOv8},
-    pdfauthor={Jesús Percy Nazario Portilla},
 }
 
 % ============================================================
@@ -43,80 +39,67 @@
 
 \lstset{
     backgroundcolor=\color{codegray},
-    basicstyle=\ttfamily\footnotesize,
+    basicstyle=\ttfamily\scriptsize,
     keywordstyle=\color{codekeyword}\bfseries,
     stringstyle=\color{codestring},
     commentstyle=\color{codecomment}\itshape,
     breaklines=true,
     frame=single,
-    numbers=left,
-    numberstyle=\tiny\color{codecomment},
     showstringspaces=false,
     tabsize=2,
-    language=Python,
 }
 
 % ============================================================
-% Encabezados
+% Comandos auxiliares IEEE
 % ============================================================
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\small Detección de Cumplimiento de EPP — YOLOv8}
-\fancyhead[R]{\small \thepage}
-\renewcommand{\headrulewidth}{0.4pt}
-
-\titleformat{\section}{\normalfont\Large\bfseries}{\thesection.}{0.5em}{}
-\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{0.5em}{}
-
-% ============================================================
-% Información del documento
-% ============================================================
-\title{
-    \vspace{-1.5cm}
-    \rule{\linewidth}{0.5pt}\\[0.5cm]
-    {\Huge \bfseries Detección de Cumplimiento de Normas\\ de Seguridad en Obras de Construcción}\\[0.3cm]
-    {\Large Parcial — Deep Learning aplicado a visión por computadora}\\[0.3cm]
-    \rule{\linewidth}{0.5pt}
-}
-\author{Jesús Percy Nazario Portilla}
-\date{\today}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
 % ============================================================
 % Documento
 % ============================================================
 \begin{document}
 
+\title{Detección de Cumplimiento de Normas de Seguridad en Obras de
+Construcción mediante YOLOv8 y Verificación Determinista por Reglas}
+
+\author{
+    \IEEEauthorblockN{Jesús Percy Nazario Portilla}
+    \IEEEauthorblockA{
+        \textit{Parcial — Deep Learning aplicado a visión por computadora} \\
+        \textit{Repositorio:} \url{https://github.com/PercyTechX/epp-yolo-compliance} \\
+        \textit{Release v1.0:} \url{https://github.com/PercyTechX/epp-yolo-compliance/releases/tag/v1.0}
+    }
+}
+
 \maketitle
-\thispagestyle{empty}
 
-\vspace{1cm}
-\begin{center}
-\textbf{Repositorio:} \url{https://github.com/PercyTechX/epp-yolo-compliance}\\[0.3em]
-\textbf{Modelo final (Release v1.0):} \url{https://github.com/PercyTechX/epp-yolo-compliance/releases/tag/v1.0}
-\end{center}
-
-\vspace{1cm}
-
+% ============================================================
+% Abstract
+% ============================================================
 \begin{abstract}
-\noindent Se entrenó un detector YOLOv8s para identificar trabajadores de
-construcción y los elementos de protección personal (EPP) que portan, y se
-acopló un módulo determinista de verificación de cumplimiento. El modelo
-final alcanza \textbf{mAP@0.5 = 0.771} sobre un conjunto de prueba no
-visto (3.895 imágenes), con desempeño excelente en las tres clases
-críticas (cabeza con casco, cabeza sin casco y chaleco, todas con
-mAP@0.5 $\geq$ 0.947). Durante el desarrollo se identificó una limitación
-importante derivada de la combinación de tres datasets con anotación
-parcial no superpuesta: el modelo predice clases distintas según el
-``estilo'' de la imagen, lo que limita la emisión de veredictos
-CONFORME cuando se evalúa por trabajador. Esta limitación se documenta
-cuantitativamente y se valida experimentalmente comparando contra un
-modelo externo entrenado sobre un dataset con anotación completa, que
-produce 2.75$\times$ más veredictos definitivos sobre la misma escena.
+Se entrenó un detector YOLOv8s para identificar trabajadores de construcción
+y los elementos de protección personal (EPP) que portan, y se acopló un módulo
+determinista de verificación de cumplimiento que emite veredictos por
+trabajador (CONFORME / NO\_CONFORME / INDETERMINADO). El modelo final
+alcanza mAP@0.5 = 0.771 sobre un conjunto de prueba no visto (3.895
+imágenes), con desempeño excelente en las tres clases críticas (cabeza con
+casco, cabeza sin casco y chaleco, todas con mAP@0.5 $\geq$ 0.947). Durante
+el desarrollo se identificó una limitación estructural derivada de la
+combinación de tres datasets con anotación parcial no superpuesta:
+el modelo predice clases distintas según el ``estilo'' de la imagen, lo
+que limita la emisión de veredictos definitivos cuando se evalúa por
+trabajador. Esta limitación se documenta cuantitativamente y se valida
+experimentalmente comparando contra un modelo externo entrenado sobre un
+dataset con anotación completa, que produce 2.75$\times$ más veredictos
+definitivos sobre la misma escena. El sistema completo se demuestra sobre
+video real de obra no visto en entrenamiento.
 \end{abstract}
 
-\newpage
-\tableofcontents
-\newpage
+\begin{IEEEkeywords}
+detección de objetos, YOLOv8, equipos de protección personal,
+seguridad ocupacional, verificación basada en reglas, sesgo de dataset
+\end{IEEEkeywords}
 
 % ============================================================
 \section{Introducción}
@@ -125,15 +108,14 @@ produce 2.75$\times$ más veredictos definitivos sobre la misma escena.
 \subsection{Problema}
 
 Las obras de construcción son entornos de alto riesgo. El uso correcto del
-casco de seguridad y del chaleco reflectivo es una de las medidas más
-básicas para reducir la tasa de accidentes. La supervisión manual del
-cumplimiento de estas normas es costosa, intermitente y susceptible a
-sesgos humanos.
+casco de seguridad y del chaleco reflectivo es una de las medidas más básicas
+para reducir la tasa de accidentes laborales. La supervisión manual del
+cumplimiento de estas normas es costosa, intermitente y susceptible a sesgos
+humanos.
 
-Este trabajo aborda el problema de \textbf{detectar automáticamente
-trabajadores y clasificar su estado de cumplimiento del EPP} a partir de
-imágenes y video de obras, abordando tres desafíos técnicos centrales:
-
+Este trabajo aborda el problema de detectar automáticamente trabajadores y
+clasificar su estado de cumplimiento del EPP a partir de imágenes y video
+de obras, abordando tres desafíos técnicos centrales:
 \begin{enumerate}
     \item \textbf{Oclusión severa}: trabajadores parcialmente ocultos por
     maquinaria, andamios u otros trabajadores.
@@ -143,34 +125,13 @@ imágenes y video de obras, abordando tres desafíos técnicos centrales:
     crítica) son típicamente escasos en grabaciones reales.
 \end{enumerate}
 
-\subsection{Objetivos}
-
-\begin{itemize}
-    \item Entrenar y evaluar un modelo YOLO ajustado al dominio.
-    \item Implementar un verificador de cumplimiento basado en reglas
-    como posprocesamiento determinista.
-    \item Documentar de forma justificada las decisiones de entrenamiento.
-    \item Evaluar cuantitativamente con desglose por clase y nivel de
-    oclusión.
-    \item Demostrar el sistema sobre video real no visto en entrenamiento.
-    \item Reflexionar sobre las implicaciones éticas.
-\end{itemize}
-
 \subsection{Estrategia general}
 
-Se adopta una arquitectura híbrida \textbf{percepción + decisión}:
-
-\begin{itemize}
-    \item \textbf{Percepción}: un modelo YOLOv8 detecta cabezas
-    (con/sin casco), chalecos y cuerpos completos cuando es posible.
-    \item \textbf{Decisión}: un módulo Python independiente toma las
-    detecciones y emite un veredicto por trabajador (CONFORME /
-    NO\_CONFORME / INDETERMINADO).
-\end{itemize}
-
-Esta separación es un \textbf{requisito explícito del enunciado} y favorece
-la auditabilidad (la lógica de cumplimiento es código legible) y la
-modificabilidad (se pueden cambiar reglas sin reentrenar el modelo).
+Se adopta una arquitectura híbrida \emph{percepción + decisión}:
+un modelo YOLOv8 realiza la percepción (detección de cabezas, chalecos y
+cuerpos) y un módulo Python determinista realiza la decisión (veredicto
+por trabajador). Esta separación es un requisito explícito del enunciado
+y favorece la auditabilidad y modificabilidad sin reentrenar el modelo.
 
 % ============================================================
 \section{Datos}
@@ -178,79 +139,62 @@ modificabilidad (se pueden cambiar reglas sin reentrenar el modelo).
 
 \subsection{Fuentes}
 
-Se combinaron tres datasets públicos de Roboflow Universe, descargados
-en formato YOLOv8:
-
-\begin{table}[h]
-\centering
-\begin{tabular}{lrll}
-\toprule
-\textbf{Dataset} & \textbf{Imágenes} & \textbf{Aporta} & \textbf{Licencia} \\
-\midrule
-Hard Hat Workers & 7.035 & cabezas + person & Public Domain \\
-Safety Helmet (lisa-group-de) & 7.035 & cabezas + person & CC BY 4.0 \\
-Safety Vest PPE & 11.906 & chalecos & CC BY 4.0 \\
-\midrule
-\textbf{Total} & \textbf{25.976} & & \\
-\bottomrule
-\end{tabular}
-\caption{Datasets de origen combinados.}
-\end{table}
+Se combinaron tres datasets públicos de Roboflow Universe en formato
+YOLOv8: \emph{Hard Hat Workers} (7.035 imgs), \emph{Safety Helmet}
+(7.035 imgs) y \emph{Safety Vest PPE} (11.906 imgs). Total: 25.976
+imágenes.
 
 \subsection{Taxonomía unificada}
 
-Las clases de cada dataset original se remapearon a una taxonomía común
-de 5 clases mediante una tabla declarativa versionada
+Las clases originales se remapearon a una taxonomía común de 5 clases
+mediante una tabla declarativa versionada
 (\texttt{configs/class\_mapping.yaml}):
 
 \begin{table}[h]
 \centering
-\begin{tabular}{rll}
+\caption{Taxonomía unificada de 5 clases.}
+\label{tab:taxonomia}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{c l}
 \toprule
-\textbf{id} & \textbf{Clase} & \textbf{Significado} \\
+\textbf{id} & \textbf{Clase} \\
 \midrule
-0 & head\_with\_helmet & Cabeza con casco visible \\
-1 & head\_without\_helmet & Cabeza sin casco (clase crítica) \\
-2 & person & Cuerpo completo o parcial \\
-3 & vest & Chaleco reflectivo visible \\
-4 & no\_vest\_person & Persona sin chaleco identificable \\
+0 & head\_with\_helmet \\
+1 & head\_without\_helmet \\
+2 & person \\
+3 & vest \\
+4 & no\_vest\_person \\
 \bottomrule
 \end{tabular}
-\caption{Taxonomía unificada de 5 clases.}
 \end{table}
 
 \subsection{Splits estratificados}
 
-Se generaron splits \textbf{70/15/15} train/val/test estratificados por
-\textbf{combinación de clases presentes en cada imagen}. Esto preserva
+Se generaron splits 70/15/15 train/val/test estratificados por
+\emph{combinación de clases presentes en cada imagen}, lo que preserva
 la proporción de cada clase en cada split y previene la fuga de datos
-entre splits.
+entre splits. La distribución resultante se muestra en la Fig.~\ref{fig:dist}.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.85\textwidth]{figures/class_distribution.png}
+\includegraphics[width=0.95\columnwidth]{figures/class_distribution.png}
 \caption{Distribución de instancias por clase y por split. Notar la
-escasez de \texttt{person} (1.116 train, 2.0\% del total) y la ausencia
-total de \texttt{no\_vest\_person} en todos los splits — esta clase se
-infiere por reglas en el verificador.}
+escasez de \texttt{person} (1.116 train, 2\% del total) y la ausencia
+total de \texttt{no\_vest\_person} en todos los splits.}
 \label{fig:dist}
 \end{figure}
 
 \subsection{Reconocimiento de límites del dataset}
 
-Dos limitaciones se identifican explícitamente:
-
-\begin{enumerate}
-    \item \textbf{Clase \texttt{person} muy escasa} (2.0\% de las
-    instancias): los tres datasets son detectores centrados en EPP,
-    no anotan exhaustivamente el cuerpo completo.
-    \item \textbf{\texttt{no\_vest\_person} ausente}: ningún dataset
-    aporta esa etiqueta. La ausencia de chaleco se infiere por reglas
+Se identifican explícitamente tres limitaciones:
+\begin{itemize}
+    \item Clase \texttt{person} muy escasa (2\% de las instancias).
+    \item \texttt{no\_vest\_person} ausente; se infiere por reglas
     espaciales en el verificador.
-    \item \textbf{Anotación parcial no superpuesta}: Hard Hat y SHWD
-    anotan solo cabezas; PPE anota solo chalecos. Esta limitación
-    se discute en profundidad en la Sección~\ref{sec:hallazgo}.
-\end{enumerate}
+    \item Anotación parcial no superpuesta: Hard Hat y SHWD anotan
+    solo cabezas, PPE anota solo chalecos. Esta limitación se discute
+    en profundidad en la Sección~\ref{sec:hallazgo}.
+\end{itemize}
 
 % ============================================================
 \section{Metodología}
@@ -258,75 +202,57 @@ Dos limitaciones se identifican explícitamente:
 
 \subsection{Elección del modelo}
 
-Se eligió \textbf{YOLOv8} (Ultralytics) por madurez del tooling,
-documentación extensa, compatibilidad probada con Kaggle y excelente
-relación costo-beneficio frente a YOLOv9 para un parcial con plazo
-definido. Se usó la variante \textbf{YOLOv8s} (small, $\sim$11M parámetros).
+Se eligió YOLOv8 \cite{ultralytics2023} (Ultralytics) por madurez del
+\emph{tooling}, documentación extensa, compatibilidad probada con Kaggle
+y excelente relación costo-beneficio frente a YOLOv9 para un parcial
+con plazo definido. Se usó la variante YOLOv8s (\emph{small},
+$\sim$11M parámetros).
 
-\subsection{Configuración base (baseline)}
+\subsection{Configuración del baseline}
 
-\begin{table}[h]
-\centering
-\begin{tabular}{ll}
-\toprule
-\textbf{Hiperparámetro} & \textbf{Valor} \\
-\midrule
-Resolución de entrada & 640$\times$640 \\
-Epochs & 80 \\
-Patience (early stopping) & 20 \\
-Optimizador & SGD \\
-Learning rate inicial & 0.01 \\
-Batch & 16 \\
-Mosaic & 1.0 \\
-MixUp & 0.0 (desactivado) \\
-Random Erasing & 0.0 (desactivado) \\
-\bottomrule
-\end{tabular}
-\caption{Hiperparámetros del baseline.}
-\end{table}
+Se entrenó un baseline con configuración por defecto de Ultralytics:
+resolución 640$\times$640, 80 epochs, optimizador SGD con
+\emph{learning rate} inicial 0.01, batch 16, mosaic activo, sin MixUp
+ni Random Erasing.
 
 \subsection{Experimentos comparativos}
 
-Se diseñaron cuatro experimentos para atacar los tres desafíos del
-enunciado. Por restricciones de cuota GPU (Kaggle: 30 h semanales,
-$\sim$7--8 h por entrenamiento) se ejecutaron dos:
+Se diseñaron cuatro experimentos para atacar los tres desafíos. Por
+restricciones de cuota GPU en Kaggle (30 h semanales, $\sim$7--8 h por
+entrenamiento), se ejecutaron dos:
 
 \begin{table}[h]
 \centering
-\begin{tabular}{cll}
+\caption{Experimentos diseñados.}
+\label{tab:exp}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{c l p{2.5cm}}
 \toprule
 \textbf{Exp} & \textbf{Cambio vs baseline} & \textbf{Objetivo} \\
 \midrule
-A & Resolución 960 & Mejorar detección de objetos pequeños \\
-\textbf{B} & \textbf{mixup=0.15, erasing=0.4} & \textbf{Robustez a oclusión} \\
-C & Pesos de clase / oversampling & Atacar desbalance de clases \\
-\textbf{D} & \textbf{close\_mosaic=15} & \textbf{Afinar epochs finales} \\
+A & Resolución 960 & Objetos pequeños \\
+\textbf{B} & \textbf{mixup=0.15, erasing=0.4} & \textbf{Oclusión} \\
+C & Pesos de clase & Desbalance \\
+\textbf{D} & \textbf{close\_mosaic=15} & \textbf{Afinar final} \\
 \bottomrule
 \end{tabular}
-\caption{Experimentos diseñados. B y D se ejecutaron; A y C se descartaron
-por costo/beneficio.}
 \end{table}
 
-\textbf{A se descartó} por riesgo de timeout en Kaggle ($\sim$12--15 h
-estimadas, sobre el límite de 12 h por sesión). \textbf{C se descartó}
-porque el problema de \texttt{person} es de \emph{cantidad de datos}
-(1.116 train), no de balance: ningún esquema de pesos ``inventa'' más
-ejemplos.
+\textbf{A se descartó} por riesgo de \emph{timeout} en Kaggle
+($\sim$12--15 h estimadas, sobre el límite de 12 h por sesión).
+\textbf{C se descartó} porque el problema de la clase \texttt{person}
+es de cantidad de datos (1.116 train), no de balance.
 
 \subsection{Decisiones técnicas justificadas}
 
-\textbf{Anchors}: Ultralytics 8.x usa estrategia \emph{anchor-free} con
-Distribution Focal Loss. No hay anchors a configurar.
-
-\textbf{Augmentaciones}: estrictamente las nativas de Ultralytics (HSV
-jitter, flip horizontal, traslación, escala, mosaic). El Exp. B añadió
-Random Erasing y MixUp moderado.
-
-\textbf{Mosaic}: activo durante 65 de 80 epochs en el modelo final
-(\texttt{close\_mosaic=15} desactiva en los últimos 15 para afinar con
-imágenes en su distribución natural).
-
-\textbf{Resolución}: 640 en todos los experimentos.
+\textbf{Anchors:} YOLOv8 usa estrategia \emph{anchor-free} con
+Distribution Focal Loss; no hay anchors a configurar.
+\textbf{Augmentaciones:} estrictamente las nativas de Ultralytics
+(HSV \emph{jitter}, \emph{flip} horizontal, traslación, escala,
+mosaic). El Exp. B añadió Random Erasing y MixUp moderado.
+\textbf{Mosaic:} activo durante 65 de 80 epochs en el modelo final
+(\texttt{close\_mosaic=15}).
+\textbf{Resolución:} 640 en todos los experimentos durante entrenamiento.
 
 % ============================================================
 \section{Resultados cuantitativos}
@@ -336,29 +262,31 @@ imágenes en su distribución natural).
 
 \begin{table}[h]
 \centering
-\begin{tabular}{lrrr}
+\caption{Comparación de los tres experimentos sobre val. Modelo elegido:
+Experimento D.}
+\label{tab:cmp_val}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{l rrr}
 \toprule
 \textbf{Clase} & \textbf{Baseline} & \textbf{Exp B} & \textbf{Exp D} \\
 \midrule
-head\_with\_helmet (mAP@0.5) & 0.978 & 0.978 & \textbf{0.979} \\
-head\_without\_helmet (mAP@0.5) & 0.959 & 0.960 & 0.959 \\
-vest (mAP@0.5) & 0.987 & 0.986 & 0.986 \\
-person (mAP@0.5) & 0.175 & 0.153 & 0.175 \\
+head\_with\_helmet & 0.978 & 0.978 & \textbf{0.979} \\
+head\_without\_helmet & 0.959 & 0.960 & 0.959 \\
+vest & 0.987 & 0.986 & 0.986 \\
+person & 0.175 & 0.153 & 0.175 \\
 \midrule
 \textbf{all mAP@0.5} & \textbf{0.775} & 0.769 & \textbf{0.775} \\
 \textbf{all mAP@0.5--0.95} & 0.567 & 0.562 & \textbf{0.569} \\
 \bottomrule
 \end{tabular}
-\caption{Comparación de los tres experimentos sobre val. Modelo elegido:
-\textbf{Experimento D}.}
 \end{table}
 
-\textbf{Hallazgo del Exp. B}: las augmentaciones agresivas (Random
-Erasing + MixUp) \emph{no aportaron} mejora en este dataset; degradaron
-ligeramente la precisión global ($-0.6$ pp). Hallazgo válido para
-reportar honestamente.
+\textbf{Hallazgo del Exp. B}: las augmentaciones agresivas no aportaron
+mejora en este dataset; degradaron ligeramente la precisión global
+($-0.6$ pp). Hallazgo válido para reportar honestamente: el dataset
+ya contiene suficiente variabilidad natural.
 
-\begin{figure}[h]
+\begin{figure*}[t]
 \centering
 \begin{subfigure}{0.48\textwidth}
     \centering
@@ -371,20 +299,27 @@ reportar honestamente.
     \includegraphics[width=\linewidth]{figures/results_exp_D.png}
     \caption{Exp. D (modelo elegido)}
 \end{subfigure}
-\caption{Curvas de entrenamiento: pérdidas (train/val) y métricas (mAP,
-precision, recall) por epoch. Ambos modelos convergen sin overfitting.}
-\end{figure}
+\caption{Curvas de entrenamiento: pérdidas (train/val) y métricas
+(mAP, precision, recall) por epoch. Ambos modelos convergen sin
+\emph{overfitting}.}
+\label{fig:curvas}
+\end{figure*}
 
 \subsection{Evaluación final sobre el conjunto de prueba}
 
-Modelo D evaluado sobre \textbf{3.895 imágenes nunca vistas} durante el
-entrenamiento ni la selección de hiperparámetros.
+Modelo D evaluado sobre 3.895 imágenes nunca vistas durante entrenamiento
+ni selección de hiperparámetros (Tabla~\ref{tab:test}).
 
-\begin{table}[h]
+\begin{table*}[t]
 \centering
-\begin{tabular}{lrrrrr}
+\caption{Métricas finales del modelo D sobre el conjunto de prueba
+(3.895 imágenes, 12.373 instancias).}
+\label{tab:test}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{l rrrrr}
 \toprule
-\textbf{Clase} & \textbf{Inst.} & \textbf{Precision} & \textbf{Recall} & \textbf{mAP@0.5} & \textbf{mAP@0.5--0.95} \\
+\textbf{Clase} & \textbf{Inst.} & \textbf{Precision} & \textbf{Recall}
+& \textbf{mAP@0.5} & \textbf{mAP@0.5--0.95} \\
 \midrule
 head\_with\_helmet & 7.222 & 0.939 & 0.950 & \textbf{0.976} & 0.664 \\
 head\_without\_helmet & 2.104 & 0.892 & 0.942 & \textbf{0.947} & 0.646 \\
@@ -394,73 +329,60 @@ person & 216 & 0.341 & 0.208 & 0.176 & 0.129 \\
 \textbf{all} & 12.373 & \textbf{0.777} & \textbf{0.765} & \textbf{0.771} & \textbf{0.569} \\
 \bottomrule
 \end{tabular}
-\caption{Métricas finales del modelo D sobre el test set.}
-\label{tab:test}
-\end{table}
+\end{table*}
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.7\textwidth]{figures/confusion_exp_D.png}
-\caption{Matriz de confusión del modelo D sobre validación. Notar la
-diagonal fuerte para las tres clases principales y la confusión casi
-inexistente entre clases: los errores caen mayoritariamente en
-\emph{background} (falsos negativos o falsos positivos), no en
-otra clase.}
+\includegraphics[width=0.95\columnwidth]{figures/confusion_exp_D.png}
+\caption{Matriz de confusión del modelo D sobre validación. La diagonal
+es fuerte para las tres clases principales; los errores caen
+mayoritariamente en \emph{background} (falsos negativos), no en otra
+clase, lo que indica buena separabilidad entre clases.}
+\label{fig:cm}
 \end{figure}
 
 \subsection{Generalización (val vs test)}
 
-\begin{table}[h]
-\centering
-\begin{tabular}{lrrrl}
-\toprule
-\textbf{Métrica} & \textbf{Val} & \textbf{Test} & \textbf{$\Delta$} & \textbf{Interpretación} \\
-\midrule
-mAP@0.5 & 0.775 & 0.771 & $-0.004$ & Sin overfitting \\
-mAP@0.5--0.95 & 0.569 & 0.569 & $0.000$ & Idéntico \\
-Precision & 0.795 & 0.777 & $-0.018$ & Caída mínima \\
-Recall & 0.765 & 0.765 & $0.000$ & Idéntico \\
-\bottomrule
-\end{tabular}
-\caption{Las métricas test son prácticamente idénticas a val. Los splits
-estratificados sin fuga funcionaron correctamente.}
-\end{table}
+Las métricas \emph{test} son prácticamente idénticas a las de \emph{val}
+($\Delta$mAP@0.5 = $-0.004$, $\Delta$mAP@0.5--0.95 = 0.000). Los \emph{splits}
+estratificados sin fuga funcionaron correctamente y el modelo no presenta
+\emph{overfitting}.
 
 \subsection{Análisis de robustez por nivel de oclusión}
 
-Para cada imagen del test se calculó el \textbf{IoU máximo entre cualquier
-par de cajas anotadas} y se clasificó en tres niveles.
+Para cada imagen del \emph{test} se calculó el IoU máximo entre cualquier
+par de cajas anotadas y se clasificó en tres niveles
+(Tabla~\ref{tab:occ}).
 
-\begin{table}[h]
+\begin{table*}[t]
 \centering
-\begin{tabular}{lrrrrr}
+\caption{Métricas por nivel de oclusión sobre el test set.}
+\label{tab:occ}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{l rrrrr}
 \toprule
-\textbf{Nivel} & \textbf{n} & \textbf{mAP@0.5} & \textbf{mAP@0.5--0.95} & \textbf{Precision} & \textbf{Recall} \\
+\textbf{Nivel} & \textbf{n} & \textbf{mAP@0.5} & \textbf{mAP@0.5--0.95}
+& \textbf{Precision} & \textbf{Recall} \\
 \midrule
 Bajo (IoU $< 0.15$) & 3.695 & 0.779 & 0.576 & 0.782 & 0.796 \\
 Medio (0.15--0.40) & 185 & 0.789 & 0.565 & 0.797 & 0.749 \\
-Alto ($\geq$ 0.40) & 15 & 0.704 & 0.512 & 0.783 & 0.623 \\
+Alto ($\geq 0.40$) & 15 & 0.704 & 0.512 & 0.783 & 0.623 \\
 \midrule
 \textbf{Caída bajo $\to$ alto} & — & \textbf{$-7.5$ pp} & $-6.4$ pp & $+0.1$ pp & \textbf{$-17.3$ pp} \\
 \bottomrule
 \end{tabular}
-\caption{Métricas por nivel de oclusión sobre el test set.}
-\end{table}
+\end{table*}
 
-\textbf{Lectura}:
-\begin{itemize}
-    \item El modelo es \emph{robusto a oclusión leve-media}: \textit{low}
-    y \textit{medium} tienen mAP@0.5 prácticamente equivalente.
-    \item La oclusión alta sí degrada el desempeño: caída de 7.5 pp en
-    mAP@0.5.
-    \item \textbf{El recall es la métrica más afectada} ($-17.3$ pp), no
-    la precisión. El modelo \emph{pierde detecciones} (no las ve) cuando
-    hay oclusión fuerte; las que sí encuentra siguen bien clasificadas.
-    Operativamente: en escenas concurridas se podrían perder trabajadores
-    no conformes (\emph{falso negativo} crítico para seguridad).
-    \item \textbf{Caveat estadístico}: el grupo ``alto'' tiene $n=15$.
-    El intervalo de confianza del ``$-7.5$ pp'' es amplio.
-\end{itemize}
+\textbf{Lectura:} el modelo es robusto a oclusión leve-media (las
+métricas son prácticamente equivalentes). La oclusión alta sí degrada
+el desempeño, con caída de 7.5 pp en mAP@0.5. \textbf{El recall es la
+métrica más afectada} ($-17.3$ pp), no la precisión: el modelo
+\emph{pierde detecciones} cuando hay oclusión fuerte, pero las que sí
+encuentra siguen bien clasificadas. Operativamente, esto significa que
+en escenas concurridas se podrían perder trabajadores no conformes
+(falso negativo crítico para seguridad). \textbf{Caveat estadístico:}
+el grupo ``alto'' tiene $n=15$; el intervalo de confianza del
+``$-7.5$ pp'' es amplio.
 
 % ============================================================
 \section{Verificador determinista de cumplimiento}
@@ -468,100 +390,88 @@ Alto ($\geq$ 0.40) & 15 & 0.704 & 0.512 & 0.783 & 0.623 \\
 
 \subsection{Diseño}
 
-El verificador es un \textbf{módulo Python independiente} que consume las
+El verificador es un módulo Python independiente que consume las
 detecciones de YOLO por fotograma y emite un veredicto por trabajador.
 Implementado en \texttt{src/compliance/} con tres archivos:
-\texttt{geometry.py}, \texttt{verifier.py}, \texttt{renderer.py}.
-Cuenta con \textbf{29 tests unitarios pytest} sobre escenarios sintéticos.
+\texttt{geometry.py} (utilidades puras), \texttt{verifier.py} (lógica
+de decisión) y \texttt{renderer.py} (rendering con Supervision).
+Cuenta con 29 tests unitarios pytest sobre escenarios sintéticos.
 
 \subsection{Estrategia de asociación: cabeza-ancla}
 
 El diseño inicial usaba \texttt{person} como ancla. En evaluación
 cualitativa este diseño falló porque la clase \texttt{person} tiene
-recall del 17\% sobre val.
-
-Se reescribió la lógica como \textbf{cabeza-ancla}: para cada cabeza
-detectada, se busca un chaleco debajo con alineación horizontal
-razonable. Si existe un \texttt{person} que contiene la cabeza, se usa
-solo para enriquecer el rendering. Esta versión opera correctamente con
-las detecciones reales del modelo.
+\emph{recall} del 17\% sobre val. Se reescribió la lógica como
+\emph{cabeza-ancla}: para cada cabeza detectada se busca un chaleco
+debajo con alineación horizontal razonable. Si existe un
+\texttt{person} que contiene la cabeza, se usa solo para enriquecer
+el rendering.
 
 \subsection{Lógica de veredicto}
 
 \begin{table}[h]
 \centering
-\begin{tabular}{ll}
+\caption{Lógica de decisión del verificador.}
+\label{tab:logic}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{p{3.5cm} l}
 \toprule
-\textbf{Detecciones asociadas a un trabajador} & \textbf{Veredicto} \\
+\textbf{Detecciones} & \textbf{Veredicto} \\
 \midrule
-cabeza con casco + chaleco debajo & \textbf{CONFORME} \\
-cabeza con casco, sin chaleco & NO\_CONFORME (``chaleco\_no\_visible'') \\
-cabeza sin casco & NO\_CONFORME (``casco\_ausente'') \\
-chaleco huérfano sin cabeza visible & INDETERMINADO (``cabeza\_no\_visible'') \\
+casco + chaleco asociado & \textbf{CONFORME} \\
+casco sin chaleco & NO\_CONFORME \\
+cabeza sin casco & NO\_CONFORME \\
+chaleco sin cabeza asociada & INDETERMINADO \\
 \bottomrule
 \end{tabular}
-\caption{Lógica de decisión del verificador determinista.}
 \end{table}
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.75\textwidth]{figures/verifier_imagen.jpg}
-\caption{Ejemplo de salida del verificador sobre una imagen del val set:
-3 trabajadores detectados. Bbox verde = CONFORME (casco azul + chaleco
-amarillo asociados), rojo = NO\_CONFORME, amarillo = INDETERMINADO
-(chaleco sin cabeza asociada). Tasa de cumplimiento del fotograma: 66.7\%.}
+\includegraphics[width=0.95\columnwidth]{figures/verifier_imagen.jpg}
+\caption{Salida del verificador sobre una imagen del val set: bbox
+verde = CONFORME, rojo = NO\_CONFORME, amarillo = INDETERMINADO.
+Tasa de cumplimiento del fotograma: 66.7\%.}
+\label{fig:verifier}
 \end{figure}
 
 \subsection{Hallazgo principal: sesgo de etiquetado entre datasets}
 \label{sec:hallazgo}
 
-Sobre 300 imágenes val analizadas con el modelo D:
+Sobre 300 imágenes \emph{val} analizadas con el modelo D, solo el 3.3\%
+tiene cabeza y chaleco detectados simultáneamente. El 49\% solo tiene
+cabeza con casco, el 40.3\% solo chaleco. La causa es estructural del
+dataset combinado: Hard Hat y SHWD anotan solo cabezas, PPE anota solo
+chalecos. El modelo aprendió la correlación ``estilo de imagen
+$\to$ clases visibles''.
 
-\begin{table}[h]
-\centering
-\begin{tabular}{lr}
-\toprule
-\textbf{Categoría} & \textbf{\%} \\
-\midrule
-Solo \texttt{head\_with\_helmet} detectado & 49.0\% \\
-Solo \texttt{head\_without\_helmet} detectado & 7.3\% \\
-Solo \texttt{vest} detectado & 40.3\% \\
-\textbf{\texttt{head} + \texttt{vest} (compatible con CONFORME)} & \textbf{3.3\%} \\
-\bottomrule
-\end{tabular}
-\caption{El modelo D casi nunca firma cabeza y chaleco en la misma
-imagen ($\sim$3\%). Causa: SHWD/Hard Hat anotan solo cabezas, PPE
-anota solo chalecos; el modelo aprendió la correlación ``estilo de
-imagen $\to$ clases visibles''.}
-\end{table}
-
-\textbf{Esta es una limitación del dataset, no del verificador.} Para
-producción se recomienda re-entrenar sobre un dataset con anotación
-completa por trabajador (ej. \emph{Construction Site Safety}, clases
-Hardhat + Safety Vest + Person en cada imagen).
+\textbf{Esta es una limitación del dataset, no del verificador.}
+Para producción se recomienda re-entrenar sobre un dataset con
+anotación completa por trabajador (\emph{Construction Site Safety},
+con clases Hardhat + Safety Vest + Person en cada imagen).
 
 % ============================================================
 \section{Demostración en video}
 % ============================================================
 
-\subsection{Material}
+\subsection{Material y configuración}
 
-Se procesó un video de obra real \textbf{no visto durante el
-entrenamiento}: una cuadrilla colombiana vertiendo concreto desde un
-camión Argos en una calle urbana. 25.8 segundos a 30 fps (773 frames)
-en 1920$\times$1080.
+Se procesó un video de obra real no visto durante el entrenamiento:
+una cuadrilla colombiana vertiendo concreto desde un camión Argos en
+una calle urbana. 25.8 segundos a 30 fps (773 frames) en
+1920$\times$1080. Configuración de inferencia: resolución 1280,
+umbral de confianza 0.15.
 
-\subsection{Configuración y resultados}
-
-Modelo: \texttt{runs\_outputs/exp\_D/best.pt}. Resolución de inferencia:
-1280 (subida desde el 640 de entrenamiento para detectar cabezas, que
-son objetos chicos). Umbral de confianza: 0.15.
+\subsection{Resultados agregados}
 
 \begin{table}[h]
 \centering
-\begin{tabular}{lr}
+\caption{Veredictos agregados del modelo D sobre el video demo.}
+\label{tab:demo}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{l r}
 \toprule
-\textbf{Veredicto} & \textbf{Cantidad sobre 773 frames} \\
+\textbf{Veredicto} & \textbf{Cantidad (773 frames)} \\
 \midrule
 CONFORME & 861 \\
 NO\_CONFORME & 2.600 \\
@@ -570,63 +480,49 @@ INDETERMINADO & 1.309 \\
 \textbf{Tasa de cumplimiento} & \textbf{24.9\%} \\
 \bottomrule
 \end{tabular}
-\caption{Veredictos agregados del modelo D sobre el video demo.}
 \end{table}
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.85\textwidth]{figures/demo_modelo_D.jpg}
+\includegraphics[width=0.95\columnwidth]{figures/demo_modelo_D.jpg}
 \caption{Fotograma del video demo procesado con el modelo D. Verde =
-CONFORME (casco + chaleco asociados), rojo = NO\_CONFORME (con razón
-explícita), amarillo = INDETERMINADO (chaleco sin cabeza visible).
-Tasa de cumplimiento del fotograma: 33.3\%.}
+CONFORME, rojo = NO\_CONFORME (con razón explícita), amarillo =
+INDETERMINADO. Tasa de cumplimiento del fotograma: 33.3\%.}
+\label{fig:demo_d}
 \end{figure}
-
-\subsection{Archivo del video}
-
-El video anotado completo está disponible localmente como
-\texttt{demo\_video/video03\_annotated\_v2.mp4} (114 MB). Para
-reproducirlo:
-
-\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small]
-python -m src.run_video \
-  --weights runs_outputs/exp_D/best.pt \
-  --video demo_video/video03p.mp4 \
-  --out demo_video/video03_annotated_v2.mp4 \
-  --conf 0.15 --imgsz 1280
-\end{lstlisting}
 
 \subsection{Validación experimental complementaria}
 
 Para verificar si la alta proporción de INDETERMINADO se debía al
-\textbf{pipeline} o al \textbf{dataset de entrenamiento}, se ejecutó
-el mismo pipeline sustituyendo el modelo D por un modelo YOLOv8m
-externo entrenado sobre un dataset con anotación completa por
-trabajador (10 clases incluyendo Hardhat, NO-Hardhat, Safety Vest,
-NO-Safety Vest, Person). \textbf{El verificador y el renderer no se
-modificaron}; solo se remapean las clases del modelo externo a la
-taxonomía unificada antes de pasar al verificador.
+pipeline o al dataset de entrenamiento, se ejecutó el mismo pipeline
+sustituyendo el modelo D por un modelo YOLOv8 externo entrenado sobre
+un dataset con anotación completa por trabajador (10 clases:
+Hardhat, NO-Hardhat, Safety Vest, NO-Safety Vest, Person, etc.).
+\textbf{El verificador y el renderer no se modificaron}; solo se
+remapean las clases del modelo externo a la taxonomía unificada
+(Tabla~\ref{tab:ext}).
 
 \begin{table}[h]
 \centering
-\begin{tabular}{lrrr}
+\caption{Validación experimental: el modelo externo produce
+$2.75\times$ más veredictos definitivos.}
+\label{tab:ext}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{l r r r}
 \toprule
-\textbf{Métrica} & \textbf{Modelo D nuestro} & \textbf{Modelo externo} & \textbf{Ratio} \\
+\textbf{Métrica} & \textbf{Modelo D} & \textbf{Externo} & \textbf{Ratio} \\
 \midrule
-CONFORME & 861 & 2.287 & \textbf{2.66$\times$} \\
-NO\_CONFORME & 2.600 & 7.221 & \textbf{2.78$\times$} \\
-INDETERMINADO & 1.309 & 397 & \textbf{0.30$\times \downarrow$} \\
-Veredictos determinados & 3.461 & 9.508 & \textbf{2.75$\times$} \\
-INDETERMINADO sobre total & 27.4\% & \textbf{4.0\%} & $-85\%$ \\
-Tasa cumplimiento (CONF/det.) & 24.9\% & 24.0\% & similar \\
+CONFORME & 861 & 2.287 & $2.66\times$ \\
+NO\_CONFORME & 2.600 & 7.221 & $2.78\times$ \\
+INDETERMINADO & 1.309 & 397 & $0.30\times \downarrow$ \\
+Determinados & 3.461 & 9.508 & $2.75\times$ \\
+\% INDETER. & 27.4\% & 4.0\% & $-85\%$ \\
+Tasa cumpl. & 24.9\% & 24.0\% & similar \\
 \bottomrule
 \end{tabular}
-\caption{Validación experimental: el modelo externo produce 2.75$\times$
-más veredictos definitivos. La diferencia confirma que el cuello de
-botella es el dataset combinado, no el pipeline.}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure*}[t]
 \centering
 \begin{subfigure}{0.48\textwidth}
     \centering
@@ -637,18 +533,19 @@ botella es el dataset combinado, no el pipeline.}
 \begin{subfigure}{0.48\textwidth}
     \centering
     \includegraphics[width=\linewidth]{figures/demo_externo.jpg}
-    \caption{Modelo externo}
+    \caption{Modelo externo (referencia)}
 \end{subfigure}
-\caption{Mismo frame del video procesado por ambos modelos. El modelo
-externo (derecha) detecta simultáneamente cabezas y chalecos en muchos
-más trabajadores, permitiendo al verificador emitir muchos más
-veredictos definitivos (verdes y rojos).}
-\end{figure}
+\caption{Mismo fotograma del video procesado por ambos modelos.
+El modelo externo (derecha) detecta simultáneamente cabezas y
+chalecos en muchos más trabajadores, permitiendo al verificador
+emitir muchos más veredictos definitivos (verdes y rojos).}
+\label{fig:demo_cmp}
+\end{figure*}
 
-\textbf{Aclaración de honestidad académica}: el modelo externo no es
-producto de este trabajo. Se usó únicamente como referencia experimental
-para validar el diagnóstico. El modelo principal entregado sigue siendo
-el Experimento D entrenado en este parcial.
+\textbf{Aclaración de honestidad académica:} el modelo externo no es
+producto de este trabajo. Se usó únicamente como referencia
+experimental para validar el diagnóstico. El modelo principal
+entregado sigue siendo el Experimento D entrenado en este parcial.
 
 % ============================================================
 \section{Implicaciones éticas}
@@ -656,113 +553,59 @@ el Experimento D entrenado en este parcial.
 
 \subsection{Balance entre falsos negativos y falsos positivos}
 
-Los dos tipos de error tienen costos asimétricos:
+Los dos tipos de error tienen costos asimétricos: un falso negativo
+(no detectar a un trabajador sin EPP) deja al trabajador en riesgo y
+es operativamente más costoso; un falso positivo (marcar como no
+conforme a quien sí cumple) erosiona la confianza en el sistema y
+puede llevar a sabotaje. \textbf{En seguridad ocupacional, el falso
+negativo es típicamente más costoso}, pero una tasa alta de falsos
+positivos también compromete el sistema.
 
-\begin{itemize}
-    \item \textbf{Falso negativo} (no detectar a un trabajador sin EPP):
-    el caso queda sin reportar, el trabajador permanece en riesgo. Daño
-    humano potencial y responsabilidad legal.
-    \item \textbf{Falso positivo} (marcar como no conforme a un trabajador
-    conforme): sanción injusta, erosión de confianza en el sistema, posible
-    sabotaje.
-\end{itemize}
-
-\textbf{En seguridad ocupacional, el falso negativo es típicamente más
-costoso} que el falso positivo, porque el riesgo de daño físico es
-asimétrico. Sin embargo, una tasa alta de falsos positivos también
-compromete el sistema: si los trabajadores aprenden que ``se equivoca
-seguido'', dejarán de confiar incluso cuando acierte.
-
-\textbf{Implicación para el umbral operativo}: el umbral de confianza
-del clasificador no debe elegirse maximizando el mAP global, sino
-considerando el costo asimétrico de los errores. Una recomendación
-práctica es elegir el umbral que maximiza recall sobre las clases
-críticas (\texttt{head\_without\_helmet}, \texttt{no\_vest\_person})
-sujeto a un techo de falsos positivos tolerables.
-
-\textbf{Implicación para el verificador}: el estado INDETERMINADO es
-un mecanismo de seguridad importante. El sistema no debe \emph{inventar
-veredictos} cuando no tiene evidencia suficiente; debe escalar la
-decisión a un humano. Esto es lo que hace el verificador propuesto.
+El umbral de confianza del clasificador no debe elegirse maximizando
+el mAP global sino considerando el costo asimétrico de los errores.
+El estado INDETERMINADO del verificador es un mecanismo de seguridad
+importante: el sistema no inventa veredictos cuando le falta evidencia.
 
 \subsection{Privacidad de los trabajadores}
 
 Un sistema que graba continuamente plantea cuestiones serias:
-
-\begin{itemize}
-    \item \textbf{Vigilancia continua}: el monitoreo permanente puede
-    generar estrés y desincentivar el reporte voluntario de incidentes.
-    \item \textbf{Uso secundario de las imágenes}: las imágenes pueden
-    reutilizarse para fines no acordados (evaluación de desempeño,
-    identificación en otros contextos).
-    \item \textbf{Consentimiento informado}: los trabajadores deben
-    saber qué se graba, con qué propósito y por cuánto tiempo. El
-    consentimiento bajo coerción laboral no es válido.
-\end{itemize}
-
-\textbf{Recomendaciones operativas}: anonimización de rostros a nivel
-de pipeline, retención mínima necesaria, acceso restringido por roles,
-auditoría de uso. El sistema técnico desarrollado \emph{no} implementa
-estas medidas; son necesarias para un despliegue ético.
+vigilancia continua que genera estrés y desincentiva el reporte de
+incidentes; uso secundario de las imágenes para fines no acordados;
+consentimiento informado bajo coerción laboral que no es válido.
+Recomendaciones operativas: anonimización de rostros, retención
+mínima necesaria, acceso restringido por roles, auditoría de uso.
+El sistema técnico desarrollado \emph{no} implementa estas medidas;
+son necesarias para un despliegue ético.
 
 \subsection{Sesgos introducidos por la distribución de los datos}
 
-Los tres datasets utilizados tienen sesgos identificables:
-
-\begin{itemize}
-    \item \textbf{Sesgo geográfico}: los datasets de Roboflow suelen estar
-    dominados por imágenes de obras en China, EE.UU. y Europa. Trabajadores
-    con vestimenta tradicional o herramientas locales pueden estar
-    subrepresentados.
-    \item \textbf{Sesgo demográfico}: la distribución de género, edad y
-    etnicidad de los trabajadores en los datasets no se reportó ni se
-    auditó en este trabajo. Se reconoce explícitamente como limitación.
-    \item \textbf{Sesgo de condiciones de captura}: iluminación diurna,
-    clima despejado, ángulos fijos. El modelo puede fallar con luz tenue,
-    lluvia o cámaras móviles.
-\end{itemize}
-
-\textbf{Implicación}: las métricas reportadas (mAP@0.5 = 0.771 en test)
-son \emph{válidas para la distribución del test}, no son garantía de
-desempeño equivalente en condiciones de despliegue distintas. Para
-despliegue real debería hacerse un piloto controlado en el sitio
-objetivo, con re-evaluación.
+Los datasets utilizados tienen sesgos identificables: sesgo geográfico
+(dominio de imágenes de China, EE.UU. y Europa), sesgo demográfico
+(distribución de género, edad y etnicidad no auditada en este
+trabajo) y sesgo de condiciones de captura (iluminación diurna,
+clima despejado). Las métricas reportadas son válidas para la
+distribución del \emph{test}, no garantía de desempeño equivalente
+en condiciones de despliegue distintas. Para despliegue real
+debería hacerse un piloto controlado en el sitio objetivo con
+re-evaluación.
 
 % ============================================================
 \section{Limitaciones y trabajo futuro}
 % ============================================================
 
-\subsection{Limitaciones reconocidas}
+Limitaciones reconocidas: sesgo de etiquetado entre datasets (3.3\%
+de co-ocurrencia head+vest); clase \texttt{person} escasa
+(1.116 train); Experimento A (resolución 960) no evaluado por
+restricción de cómputo; grupo ``oclusión alta'' estadísticamente
+débil ($n=15$); sin auditoría de sesgos demográficos; sin tracking
+temporal.
 
-\begin{enumerate}
-    \item \textbf{Sesgo de etiquetado entre datasets}: solo el 3.3\%
-    de las imágenes val tiene cabeza y chaleco detectados
-    simultáneamente.
-    \item \textbf{Clase \texttt{person} escasa}: 1.116 instancias en
-    train, mAP@0.5 $\approx$ 0.18 sobre test.
-    \item \textbf{No se evaluó el Experimento A (resolución 960)} por
-    restricción de tiempo de cómputo en Kaggle.
-    \item \textbf{Grupo ``oclusión alta'' estadísticamente débil}
-    ($n=15$ imágenes).
-    \item \textbf{Sin auditoría de sesgos demográficos} sobre los
-    datasets.
-    \item \textbf{Sin tracking temporal}: cada frame se procesa
-    independientemente.
-\end{enumerate}
-
-\subsection{Trabajo futuro}
-
-\begin{itemize}
-    \item Dataset con anotación completa por trabajador
-    (\emph{Construction Site Safety} con Hardhat + Safety Vest + Person
-    en cada imagen).
-    \item Modelo más grande: YOLOv8m o YOLOv9.
-    \item Resolución 960 o 1280 para mejorar objetos pequeños.
-    \item Tracking temporal (ByteTrack) para estabilizar veredictos
-    entre frames.
-    \item Calibración del umbral operativo según costo asimétrico.
-    \item Detección de arnés para trabajos en altura.
-\end{itemize}
+Trabajo futuro: re-entrenar sobre dataset con anotación completa por
+trabajador (\emph{Construction Site Safety}); modelo más grande
+(YOLOv8m/v9); resolución 960 o 1280; tracking temporal con
+ByteTrack para estabilizar veredictos entre frames; calibración del
+umbral operativo según costo asimétrico; detección de arnés para
+trabajos en altura.
 
 % ============================================================
 \section{Conclusiones}
@@ -773,100 +616,68 @@ objetivo, con re-evaluación.
     sobre test no visto, con desempeño excelente en las tres clases
     críticas (cabezas con/sin casco y chalecos, todas $\geq$ 0.947).
 
-    \item \textbf{El modelo generaliza correctamente}: las métricas
-    test son prácticamente idénticas a val ($-0.4$ pp), validando los
-    splits estratificados de la Fase 1.
+    \item El modelo generaliza correctamente: las métricas test son
+    prácticamente idénticas a val ($-0.4$ pp), validando los splits
+    estratificados.
 
-    \item \textbf{El verificador determinista funciona}: 29 tests
-    unitarios pasando + inspección cualitativa sobre val y video real
-    confirmaron que la lógica es correcta.
+    \item El verificador determinista funciona: 29 tests pytest +
+    inspección cualitativa sobre val y video real confirmaron la
+    corrección de la lógica.
 
-    \item La principal \textbf{limitación operativa es del modelo, no
-    del verificador}: el sesgo de etiquetado entre los tres datasets
-    hace que solo el 3.3\% de las imágenes tengan cabeza y chaleco
-    detectados simultáneamente. Esto se documentó cuantitativamente
-    y \textbf{se validó experimentalmente} comparando contra un modelo
-    externo: ese modelo produce 2.75$\times$ más veredictos definitivos
-    sobre la misma escena.
+    \item La principal limitación operativa es del modelo, no del
+    verificador: el sesgo de etiquetado entre los tres datasets se
+    documentó cuantitativamente y se validó experimentalmente
+    contra un modelo externo entrenado sobre un dataset con
+    anotación completa, que produce $2.75\times$ más veredictos
+    definitivos sobre la misma escena.
 
-    \item El sistema \textbf{expone honestamente su incertidumbre}
-    mediante el estado INDETERMINADO. No inventa veredictos cuando le
-    falta evidencia.
+    \item El sistema expone honestamente su incertidumbre mediante
+    el estado INDETERMINADO, no inventa veredictos cuando le falta
+    evidencia.
 
-    \item La sección ética identifica tres ejes críticos: asimetría de
-    errores, privacidad y sesgos del dataset. El sistema técnico no
-    resuelve estos ejes por sí solo; requieren políticas operativas y
-    de gobernanza.
+    \item La sección ética identifica tres ejes críticos
+    (asimetría de errores, privacidad, sesgos del dataset) cuya
+    resolución requiere políticas operativas además del sistema
+    técnico.
 \end{enumerate}
 
 % ============================================================
-\appendix
-\section{Reproducibilidad}
+% Bibliografía
 % ============================================================
+\begin{thebibliography}{99}
 
-\subsection{Estructura del repositorio}
+\bibitem{ultralytics2023}
+G. Jocher, A. Chaurasia, and J. Qiu,
+``YOLO by Ultralytics,''
+\url{https://github.com/ultralytics/ultralytics}, 2023.
 
-\begin{lstlisting}[language=bash,basicstyle=\ttfamily\footnotesize]
-epp-yolo-compliance/
-├── configs/                 # data.yaml, hyp_*.yaml, class_mapping.yaml
-├── data/                    # gitignored (datasets descargados manualmente)
-├── notebooks/kaggle/        # 8 notebooks orquestadores
-├── reports/                 # tablas, figuras, informe
-├── src/
-│   ├── analysis/            # análisis de oclusión
-│   ├── compliance/          # geometría + verificador + renderer
-│   └── data/                # remap, splits, validación
-├── tests/                   # 39 tests pytest
-├── pyproject.toml
-├── requirements.txt
-└── README.md
-\end{lstlisting}
+\bibitem{redmon2016}
+J. Redmon, S. Divvala, R. Girshick, and A. Farhadi,
+``You Only Look Once: Unified, Real-Time Object Detection,''
+\emph{Proc. IEEE Conf. Computer Vision and Pattern Recognition (CVPR)},
+pp. 779--788, 2016.
 
-\subsection{Notebooks de entrenamiento y evaluación}
+\bibitem{roboflow}
+Roboflow Universe,
+``Open source computer vision datasets and pre-trained models,''
+\url{https://universe.roboflow.com}, 2024.
 
-\begin{table}[h]
-\centering
-\begin{tabular}{llr}
-\toprule
-\textbf{Notebook} & \textbf{Propósito} & \textbf{Tiempo} \\
-\midrule
-\texttt{01\_baseline\_train} & Baseline YOLOv8s @ 640 & $\sim$7.3 h \\
-\texttt{03\_exp\_B\_augmentation} & Random Erasing + MixUp & $\sim$7.9 h \\
-\texttt{05\_exp\_D\_close\_mosaic} & close\_mosaic=15 (final) & $\sim$7.2 h \\
-\texttt{07\_test\_evaluation} & Eval sobre test set & $\sim$4 min \\
-\texttt{08\_occlusion\_analysis} & mAP por nivel de oclusión & $\sim$5 min \\
-\bottomrule
-\end{tabular}
-\caption{Notebooks de Kaggle. Modelo final: notebook 05 + 07.}
-\end{table}
+\bibitem{shwd}
+njvisionpower,
+``Safety Helmet Wearing Dataset (SHWD),''
+\url{https://github.com/njvisionpower/Safety-Helmet-Wearing-Dataset},
+2019.
 
-\subsection{Pipeline de inferencia local}
+\bibitem{supervision}
+Roboflow,
+``Supervision: tools for computer vision,''
+\url{https://github.com/roboflow/supervision}, 2023.
 
-\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small]
-# Inferencia + verificador sobre imágenes
-python -m src.run_pipeline \
-  --weights runs_outputs/exp_D/best.pt \
-  --images data/processed/images/test \
-  --out reports/figures/demo --n 20
+\bibitem{cocometrics}
+T.-Y. Lin et al.,
+``Microsoft COCO: Common Objects in Context,''
+\emph{Proc. European Conf. Computer Vision (ECCV)}, pp. 740--755, 2014.
 
-# Inferencia + verificador sobre video
-python -m src.run_video \
-  --weights runs_outputs/exp_D/best.pt \
-  --video demo_video/video03p.mp4 \
-  --out demo_video/video03_annotated_v2.mp4 \
-  --conf 0.15 --imgsz 1280
-\end{lstlisting}
-
-\subsection{Artefactos publicados}
-
-\begin{itemize}
-    \item \textbf{Código}: \url{https://github.com/PercyTechX/epp-yolo-compliance}
-    \item \textbf{Release del modelo final}:
-    \url{https://github.com/PercyTechX/epp-yolo-compliance/releases/tag/v1.0}
-    \item \textbf{Dataset remapeado (Kaggle)}:
-    \texttt{jpnazariop/epp-yolo-processed}
-    \item \textbf{Pesos del modelo final (Kaggle)}:
-    \texttt{jpnazariop/epp-yolo-exp-d-weights}
-\end{itemize}
+\end{thebibliography}
 
 \end{document}

@@ -1,109 +1,155 @@
-# Informe en LaTeX para Overleaf
+# Informe en LaTeX (formato IEEE) para Overleaf
 
-Esta carpeta contiene la versión LaTeX del informe final del parcial.
+Esta carpeta contiene la versión LaTeX del informe final del parcial,
+escrita con la clase **IEEEtran** (estilo IEEE Conference, 2 columnas).
 
 ## Contenido
 
 ```
 reports/latex/
-├── informe_final.tex     ← documento principal LaTeX
-├── figures/              ← imágenes referenciadas
-│   ├── class_distribution.png        (Distribución de clases por split)
-│   ├── results_baseline.png          (Curvas de entrenamiento del baseline)
-│   ├── results_exp_D.png             (Curvas de entrenamiento del modelo D)
-│   ├── confusion_baseline.png        (Matriz de confusión del baseline)
-│   ├── confusion_exp_D.png           (Matriz de confusión del modelo D)
-│   ├── verifier_imagen.jpg           (Ejemplo del verificador en val)
-│   ├── demo_modelo_D.jpg             (Frame del video demo - modelo D)
-│   └── demo_externo.jpg              (Frame del video demo - modelo externo)
+├── informe_final.tex     ← documento principal (IEEEtran conference)
+├── figures/              ← 8 imágenes referenciadas
+│   ├── class_distribution.png
+│   ├── results_baseline.png
+│   ├── results_exp_D.png
+│   ├── confusion_baseline.png
+│   ├── confusion_exp_D.png
+│   ├── verifier_imagen.jpg
+│   ├── demo_modelo_D.jpg
+│   └── demo_externo.jpg
 └── README.md             ← este archivo
 ```
 
 ## Subir a Overleaf
 
-### Opción A: Crear proyecto vacío y subir manualmente
+### Opción A: ZIP (recomendada, 1 paso)
 
-1. Andá a https://www.overleaf.com/project
-2. Click **"New Project"** → **"Blank Project"**.
-3. Ponele de nombre: `Parcial Deep Learning EPP YOLO`.
-4. Una vez abierto, **eliminá** el `main.tex` que viene por defecto.
-5. **Subí los archivos**:
-   - Click en el ícono de subir (📤) arriba a la izquierda en el panel de archivos.
-   - Subí `informe_final.tex` a la raíz del proyecto.
-   - Subí cada archivo de `figures/` adentro de una carpeta `figures/` en Overleaf. Para crear la carpeta, click en el ícono de nueva carpeta antes de subir.
+1. Click derecho sobre la carpeta `latex/` (en
+   `reports/`) → "Enviar a" → "Carpeta comprimida".
+2. En Overleaf: https://www.overleaf.com/project → **New Project**
+   → **Upload Project** → seleccioná el `latex.zip`.
+3. Overleaf descomprime y abre el proyecto automáticamente.
 
-### Opción B: Subir como ZIP (más fácil)
+> Verificá que el `.zip` contenga **directamente** `informe_final.tex`
+> y la carpeta `figures/` en su raíz (no anidados dentro de otra
+> carpeta `latex/`).
 
-1. Comprimí la carpeta `reports/latex/` entera (click derecho → Enviar a → Carpeta comprimida).
-2. En Overleaf: **New Project** → **Upload Project** → seleccioná el `.zip`.
-3. Overleaf descomprime y arma todo automáticamente.
+### Opción B: Manual
 
-> Si subís por ZIP, asegurate que el `.zip` contenga directamente
-> `informe_final.tex` y la carpeta `figures/` en su raíz, no anidados.
+1. En Overleaf: **New Project** → **Blank Project**.
+2. Eliminá el `main.tex` que viene por defecto.
+3. Click en el ícono de subir archivo (📤) y subí `informe_final.tex`
+   a la raíz.
+4. Crear carpeta `figures/` (ícono de carpeta nueva).
+5. Entrar a `figures/` y subir las 8 imágenes ahí.
 
-## Compilar
+## Compilar en Overleaf
 
-1. Una vez en Overleaf, click en **"Recompile"** (botón verde arriba).
-2. La primera compilación tarda 30-60 segundos.
-3. Si todo está bien, vas a ver el PDF a la derecha.
-
-### Compilador recomendado
-
-- Engine: **pdfLaTeX** (default en Overleaf, debería funcionar).
-- Si querés usar otro: XeLaTeX o LuaLaTeX también compilan este documento.
-
-### Si hay errores
-
-Errores comunes y soluciones:
-
-| Error | Causa | Solución |
-|---|---|---|
-| `! LaTeX Error: File 'figures/xxx.png' not found` | Imagen no subida o mal ubicada | Verificar que las imágenes están en la carpeta `figures/` |
-| `! Undefined control sequence` por `\url` | Falta paquete | Ya está incluido `\usepackage{hyperref}`, no debería pasar |
-| Caracteres raros (`á`, `é`) se ven mal | Encoding mal | Asegurate que el `.tex` se subió como UTF-8 (default de Overleaf) |
+1. Verificá el compilador en **Menu (☰) → Settings → Compiler**:
+   - **pdfLaTeX** funciona perfecto (recomendado).
+   - XeLaTeX y LuaLaTeX también compilan este documento.
+2. Click **"Recompile"** (botón verde arriba).
+3. Primera compilación: ~30-60 segundos.
+4. El PDF aparece a la derecha. Páginas estimadas: 6-9 (formato IEEE
+   es compacto).
 
 ## Personalización rápida
 
 ### Cambiar autor
 
-Línea ~78 del `.tex`:
+Cerca de la línea 55 del `.tex`:
 ```latex
-\author{Jesús Percy Nazario Portilla}
+\author{
+    \IEEEauthorblockN{Jesús Percy Nazario Portilla}
+    ...
+}
 ```
-Cambialo a tu nombre completo.
+Reemplazar el nombre. Si hay más de un autor, agregar más bloques
+`\IEEEauthorblockN{...}\IEEEauthorblockA{...}` separados por
+`\and`.
 
-### Cambiar fecha
+### Agregar afiliación (universidad, departamento)
 
-Línea ~79:
+Dentro de `\IEEEauthorblockA{...}` agregar las líneas:
 ```latex
-\date{\today}
+\IEEEauthorblockA{
+    \textit{Departamento de Ingeniería de Software} \\
+    \textit{Universidad XYZ} \\
+    Ciudad, País \\
+    correo@universidad.edu
+}
 ```
-- `\today` = fecha de compilación automática.
-- O hardcodealo: `\date{27 de mayo de 2026}`.
 
-### Quitar la sección de validación con modelo externo
+### Cambiar título del documento
 
-Si por alguna razón no querés mencionar OtroEnfoque, eliminá la
-subsección 6.4 (`\subsection{Validación experimental complementaria}`)
-y todo su contenido hasta el comentario `Aclaración de honestidad
-académica`.
-
-### Agregar logo de la institución
-
-Antes del `\maketitle`:
+Línea ~50:
 ```latex
-\begin{center}
-\includegraphics[width=4cm]{figures/logo_institucion.png}
-\end{center}
+\title{Detección de Cumplimiento de Normas de Seguridad...}
 ```
-(Tenés que subir el logo a la carpeta `figures/` primero).
 
-## Páginas estimadas
+### Versión journal en vez de conference
 
-El PDF compilado debería tener entre 15 y 20 páginas incluyendo
-figuras y tablas. Si la institución pide un máximo específico,
-podés ajustar:
+Cambiar la primera línea:
+```latex
+\documentclass[conference]{IEEEtran}
+```
+por:
+```latex
+\documentclass[journal]{IEEEtran}
+```
+La versión `journal` tiene running header con el título.
 
-- Reducir tamaño de figuras: `\includegraphics[width=0.7\textwidth]{...}` → `width=0.5\textwidth`.
-- Eliminar el apéndice de reproducibilidad si no es necesario.
-- Cambiar márgenes: `\usepackage[a4paper,margin=2cm]{geometry}` (de 2.5cm a 2cm).
+## Por qué IEEEtran
+
+- **Estándar internacional**: la mayoría de revistas y conferencias
+  académicas de ingeniería usan este formato.
+- **Compacto**: 2 columnas, fuentes optimizadas. Documento de 15-20
+  páginas en formato article se reduce a 6-9 en IEEE.
+- **Profesional**: el estilo es reconocido y respetado.
+- **Disponible en Overleaf**: el paquete `IEEEtran` viene preinstalado.
+
+## Estructura del documento
+
+El informe está organizado siguiendo las convenciones IEEE:
+
+1. **Title + Author block** con info del repositorio.
+2. **Abstract** + **IEEE Keywords**.
+3. **Introducción** (problema, estrategia).
+4. **Datos** (fuentes, taxonomía, splits).
+5. **Metodología** (modelo, hiperparámetros, experimentos).
+6. **Resultados cuantitativos** (tablas + figuras de curvas, matriz).
+7. **Verificador determinista** (diseño, lógica, hallazgo del sesgo).
+8. **Demostración en video** (con comparación de modelo externo).
+9. **Implicaciones éticas** (3 ejes).
+10. **Limitaciones y trabajo futuro**.
+11. **Conclusiones**.
+12. **Bibliografía** (6 referencias).
+
+## Figuras y tablas
+
+Algunas figuras y tablas usan el ambiente con asterisco (`figure*`,
+`table*`) para ocupar las **2 columnas** (necesario para gráficos
+anchos como las curvas de entrenamiento y la comparativa de modelos).
+
+Las demás figuras usan ancho de columna (`\columnwidth`).
+
+## Errores comunes y soluciones
+
+| Error | Solución |
+|---|---|
+| `File 'figures/xxx.png' not found` | Verificar que la carpeta `figures/` está al lado del `.tex`, no anidada |
+| `Undefined control sequence \IEEEauthorblockN` | Asegurate de tener `\documentclass{IEEEtran}` (no `article`) |
+| Caracteres raros (á, é, ñ) | Overleaf guarda en UTF-8 por defecto; verificá en Menu → Settings → Spell check (Spanish) |
+| Figuras quedan en otra página | Es normal en IEEE: usar `[!h]` o `[!t]` para forzar posición, o aceptar el flujo automático |
+
+## Referencias bibliográficas
+
+El documento incluye 6 referencias (YOLO, Ultralytics, Roboflow, SHWD,
+Supervision, COCO). Si necesitás agregar más:
+
+```latex
+\bibitem{tu_referencia}
+Autor, ``Título,'' Revista, año.
+```
+
+Y citalas en el texto con `\cite{tu_referencia}`.
