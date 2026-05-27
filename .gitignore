@@ -43,6 +43,9 @@ reports/tables/*.jpg
 # Notebooks descargados accidentalmente al root (la fuente oficial está en notebooks/kaggle/)
 /notebook*.ipynb
 
+# Video demo (los .mp4 son pesados, se publican en el release si es necesario)
+demo_video/
+
 # Sistema operativo
 .DS_Store
 Thumbs.db
