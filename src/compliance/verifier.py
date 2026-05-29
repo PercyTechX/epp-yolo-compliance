@@ -83,6 +83,7 @@ class PersonVerdict:
     status: ComplianceStatus
     head_class: Optional[int] = None       # id de la cabeza asociada, si la hay
     head_box: Optional[BBox] = None
+    head_score: Optional[float] = None     # confianza del detector para la cabeza
     vest_box: Optional[BBox] = None        # se mantiene en la dataclass por compatibilidad
     reasons: List[str] = field(default_factory=list)
 
@@ -225,6 +226,7 @@ def verify_frame(
                 status=status,
                 head_class=head_class,
                 head_box=head.box,
+                head_score=head.score,
                 vest_box=None,
                 reasons=reasons,
             )
