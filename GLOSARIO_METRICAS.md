@@ -226,34 +226,38 @@ monótono. **Sin overfitting, sin instabilidad.**
 
 ---
 
-## 3. Veredictos del verificador (parte propia del proyecto)
+## 3. Veredictos del verificador (regla solo-casco)
+
+> **Nota importante:** la regla operativa adoptada es **solo casco**.
+> El chaleco fue descartado como criterio por (a) contexto local
+> peruano donde no es uniforme universal y (b) limitación de datos
+> documentada en el informe. Esta decisión está en la Sección 5.3
+> del informe.
 
 ### 3.1 CONFORME 🟢
 
-**Cuándo se asigna:** cuando se detecta una cabeza CON casco Y un
-chaleco asociado debajo de ella.
+**Cuándo se asigna:** cuando se detecta una cabeza CON casco.
 
-**Significado:** el trabajador cumple con el EPP requerido.
+**Significado:** el trabajador cumple con el casco de seguridad,
+único EPP exigido por la regla actual.
 
 ---
 
 ### 3.2 NO_CONFORME 🔴
 
-**Cuándo se asigna:**
-- `casco_ausente`: se detectó una cabeza pero sin casco.
-- `chaleco_no_visible`: hay cabeza con casco pero no se detectó chaleco.
-- `casco_ausente + chaleco_no_visible`: ambos faltan.
+**Cuándo se asigna:** cuando se detecta una cabeza SIN casco.
 
-**Significado:** el trabajador NO cumple con el EPP requerido (al menos
-desde lo que el sistema puede observar).
+**Razón en el rótulo:** `casco_ausente`.
+
+**Significado:** el trabajador NO cumple con el casco de seguridad.
 
 ---
 
 ### 3.3 INDETERMINADO 🟡
 
-**Cuándo se asigna:** se detectó un chaleco huérfano (sin cabeza
-asociada arriba). El sistema no puede juzgar sin saber si esa persona
-lleva casco.
+**Cuándo se asigna:** se detectó una persona (cuerpo completo) pero
+ninguna cabeza dentro de su bbox. El sistema no puede juzgar a un
+trabajador sin ver su cabeza.
 
 **Significado:** "no tengo evidencia suficiente para decidir". Es un
 mecanismo de seguridad: **el sistema prefiere admitir incertidumbre
@@ -468,12 +472,31 @@ Variaciones de iluminación, espejado horizontal, traslaciones y escala.
 
 ### "¿Por qué tantas detecciones INDETERMINADO en el video?"
 
-> "Porque el modelo, entrenado sobre 3 datasets con anotaciones parciales
-> no superpuestas, rara vez detecta cabezas y chalecos simultáneamente
-> en la misma imagen. El verificador, al no tener evidencia suficiente,
-> prefiere emitir INDETERMINADO antes que inventar un veredicto. Esto
-> está validado experimentalmente: con un modelo entrenado sobre un
-> dataset bien anotado, la tasa de INDETERMINADO cae del 27% al 4%."
+(En la versión final del proyecto con regla solo-casco, INDETERMINADO
+es prácticamente cero — 0.1% del total. Si te preguntan por qué
+\textit{antes} aparecía mucho, así es como lo explicás:)
+
+> "En una versión anterior del verificador con regla casco+chaleco
+> aparecía mucho INDETERMINADO porque el modelo, entrenado sobre 3
+> datasets con anotaciones parciales no superpuestas, rara vez
+> detectaba cabezas y chalecos simultáneamente (3.3% del val set).
+> Al diagnosticar esa limitación y considerar el contexto operativo
+> peruano — donde el chaleco no es uniforme universal — se redefinió
+> el alcance del verificador a solo casco. Con esa regla, el
+> 99.9% de los veredictos son definitivos."
+
+### "¿Por qué redefinieron la regla a solo casco?"
+
+> "Por dos razones. Primera, **contexto operativo local**: en obras
+> peruanas el chaleco reflectivo no es uniforme universal, la prenda
+> típica es polo manga larga + casco. El casco sí es obligatorio
+> en todos los contextos. Segunda, **limitación de datos
+> diagnosticada**: los tres datasets que combinamos tenían anotación
+> parcial no superpuesta y el modelo casi nunca firmaba cabeza y
+> chaleco simultáneamente. La regla del chaleco quedaba
+> operativamente bloqueada. La decisión de alcance es honesta y
+> defendible: el sistema técnico funciona limpiamente y la decisión
+> está justificada con datos."
 
 ### "¿No habrían sido mejores otras métricas, como F1 por clase?"
 

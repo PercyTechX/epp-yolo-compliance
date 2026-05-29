@@ -45,6 +45,10 @@ reports/tables/*.jpg
 
 # Video demo (los .mp4 son pesados, se publican en el release si es necesario)
 demo_video/
+/video*.mp4
+
+# ZIP del LaTeX (se regenera comprimiendo reports/latex/)
+reports/latex.zip
 
 # Material de comparación de terceros (NO es producto de este trabajo)
 OtroEnfoque/

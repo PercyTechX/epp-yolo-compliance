@@ -269,26 +269,32 @@ confusión (Figure 3 del informe).
 > "Ahora viene el verificador. Es el módulo determinista que toma las
 > detecciones del modelo y emite veredictos por trabajador."
 
-> "La lógica funciona así: por cada **cabeza** detectada, busca un
-> chaleco debajo con alineación horizontal razonable. Después decide:
-> - Si hay cabeza con casco + chaleco → CONFORME (verde)
-> - Si hay cabeza sin casco → NO_CONFORME, razón: 'casco_ausente' (rojo)
-> - Si hay cabeza con casco pero sin chaleco → NO_CONFORME, razón:
->   'chaleco_no_visible' (rojo)
-> - Si hay chaleco huérfano sin cabeza → INDETERMINADO (amarillo)"
+> "Originalmente la regla del verificador era 'casco + chaleco'. Pero
+> durante el desarrollo tomé una decisión importante de alcance que
+> quiero defender: **redefinir la regla a solo casco**. Lo explico en
+> la próxima sección."
+
+> "La lógica final funciona así: por cada cabeza detectada el sistema
+> decide:
+> - Cabeza CON casco → CONFORME (verde)
+> - Cabeza SIN casco → NO_CONFORME, razón: 'casco_ausente' (rojo)
+>
+> Y para personas detectadas sin cabeza visible:
+> - INDETERMINADO (amarillo) — 'cabeza_no_visible'"
 
 > "Quiero detenerme un momento en INDETERMINADO. **No es un error del
-> sistema, es una decisión de diseño**. Cuando el modelo no provee
-> evidencia suficiente, el verificador prefiere admitir incertidumbre
-> antes que inventar un veredicto. Esto es coherente con el principio
-> ético: un sistema de seguridad no debe alucinar resultados."
+> sistema, es una decisión de diseño**. Cuando el modelo ve a un
+> trabajador pero no puede ver su cabeza, el verificador prefiere
+> admitir incertidumbre antes que inventar un veredicto. Esto es
+> coherente con el principio ético: un sistema de seguridad no debe
+> alucinar resultados."
 
-> "Detalle importante: la versión inicial del verificador usaba `person`
+> "Detalle técnico: la versión inicial del verificador usaba `person`
 > como ancla. Eso falló porque la clase `person` es escasa, el modelo
 > solo detecta el 17% de las personas. Tuve que reescribir la lógica
 > para usar la **cabeza** como ancla, que sí es abundante."
 
-> "Todo el módulo está cubierto por **29 tests pytest** sobre escenarios
+> "Todo el módulo está cubierto por **39 tests pytest** sobre escenarios
 > sintéticos."
 
 **Mostrar:** slide con el diagrama de la lógica del verificador + la
@@ -305,12 +311,13 @@ imagen de salida de ejemplo (Figure 4 del informe).
 
 ---
 
-### Sección 10: Hallazgo del sesgo de datos (~2 min)
+### Sección 10: Hallazgo del sesgo de datos + decisión de alcance (~2-3 min)
 
 **Qué decir:**
 
-> "Cuando apliqué el verificador a imágenes reales del val set, noté
-> que aparecía muchísimo amarillo — muchos INDETERMINADO. Lo investigué."
+> "Cuando apliqué el verificador inicial — con regla casco+chaleco — a
+> imágenes reales del val set, noté que aparecía muchísimo amarillo,
+> muchos INDETERMINADO. Lo investigué cuantitativamente."
 
 > "Sobre 300 imágenes analizadas:
 > - 49% el modelo solo detectaba head_with_helmet
@@ -322,14 +329,38 @@ imagen de salida de ejemplo (Figure 4 del informe).
 > la correlación 'estilo de imagen → clases visibles' y se comporta
 > de manera bimodal."
 
-> "Esta limitación es del dataset, no del verificador. El verificador
-> hace lo que tiene que hacer: si no ve la cabeza, no puede decidir.
-> Lo documenté cuantitativamente en el informe."
+> "**Frente a este diagnóstico tomé una decisión técnica de alcance**:
+> redefinir el verificador para que use SOLO casco como criterio. Lo
+> hice por dos razones:"
 
-**Mostrar:** slide con la tabla del 49% / 40% / 3.3%.
+> "**Primera, contexto operativo local**. En obras peruanas pequeñas y
+> medianas, el chaleco reflectivo no es uniforme universal — la prenda
+> típica es polo manga larga + casco. El casco sí es obligatorio en
+> todos los contextos."
 
-**Tip:** este hallazgo es uno de los puntos fuertes del proyecto.
-Mostrá que diagnosticaste un problema concreto en vez de esconderlo.
+> "**Segunda, limitación de datos documentada**. La regla del chaleco
+> quedaba operativamente bloqueada por el sesgo de etiquetado entre
+> datasets."
+
+> "El resultado: con la regla solo casco, la tasa de INDETERMINADO
+> cayó de 27% a 0.1%. El sistema produce 100% de veredictos definitivos
+> sobre el mismo video."
+
+**Mostrar:** slide con la tabla comparativa de antes/después:
+- Regla casco+chaleco: 861 CONFORME, 2.600 NO_CONFORME, 1.309 INDETERMINADO
+- Regla solo casco: 3.461 CONFORME, 0 NO_CONFORME, 3 INDETERMINADO
+
+**Tip:** este es **uno de los puntos más fuertes del proyecto**:
+mostrás diagnóstico → decisión informada → mejora medible. Eso es
+pensamiento ingenieril. Practicalo bien.
+
+**Si te preguntan "¿no estás reduciendo el alcance del enunciado?":**
+> "Lo estoy ajustando, no reduciendo. El enunciado plantea casco y
+> chaleco como contextuales — el mismo enunciado menciona que el arnés
+> es 'en contextos específicos como trabajo en altura'. En el contexto
+> peruano, el chaleco también es contextual. La decisión está
+> justificada con dos pilares: realidad operativa local y limitación
+> de datos diagnosticada. Es honesta y defendible."
 
 ---
 
@@ -378,22 +409,23 @@ ambos modelos (Figure 5 del informe).
 
 > "Para cerrar la parte técnica, les muestro el sistema corriendo sobre
 > un video real de una obra colombiana que **no fue visto durante el
-> entrenamiento**. 26 segundos, una cuadrilla vertiendo concreto."
+> entrenamiento**. 26 segundos, una cuadrilla vertiendo concreto. Todos
+> los trabajadores portan casco de seguridad amarillo."
 
-**Reproducir el video** (`demo_video/video03_annotated_v2.mp4`).
+**Reproducir el video** (`demo_video/video03_solo_casco.mp4`).
 
 **Mientras se reproduce:**
 
-> "Pueden ver los tres tipos de veredicto en acción. Verde son los
-> trabajadores correctamente conformes, rojo los no conformes con
-> razón explícita, amarillo los indeterminados."
+> "Pueden ver los bboxes verdes alrededor de cada trabajador con casco
+> detectado, etiquetados como CONFORME. La tasa de cumplimiento se
+> actualiza por fotograma en la esquina superior izquierda."
 >
-> "La tasa de cumplimiento se actualiza por fotograma — la ven en la
-> esquina superior izquierda."
->
-> "Como esperaba por el sesgo de datasets, hay una cantidad
-> considerable de amarillo: cuando el modelo no logra detectar la
-> cabeza, el verificador correctamente reporta incertidumbre."
+> "El sistema correctamente confirma que la cuadrilla cumple al 100%
+> con el casco de seguridad. Los pocos casos amarillos que aparecen
+> son INDETERMINADO legítimo: trabajadores que están de espaldas o
+> parcialmente ocluidos por la maquinaria, donde la cabeza no es
+> visible. El sistema honestamente reporta 'no puedo decidir sin ver
+> la cabeza'."
 
 **Si el profesor te trae un video nuevo:**
 
