@@ -55,6 +55,26 @@ datasets:
       person: person
     discard_classes: []
 
+  otroenfoque:
+    description: >
+      Construction Site Safety dataset incluido en la carpeta OtroEnfoque.
+      Anotación COMPLETA por trabajador (Hardhat + Safety Vest + Person en
+      cada imagen), ideal para fine-tuning. 2.719 imágenes, 10 clases
+      originales (5 mapeables + 5 descartadas).
+    source_format: yolo
+    mapping:
+      Hardhat: head_with_helmet
+      NO-Hardhat: head_without_helmet
+      Person: person
+      Safety Vest: vest
+      NO-Safety Vest: no_vest_person
+    discard_classes:
+      - Mask
+      - NO-Mask
+      - Safety Cone
+      - machinery
+      - vehicle
+
   ppe:
     description: >
       PPE Detection (Roboflow Universe). Aporta principalmente chalecos.

@@ -55,7 +55,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         required=True,
-        choices=["shwd", "helmet", "ppe"],
+        choices=["shwd", "helmet", "ppe", "otroenfoque"],
         help="Nombre lógico del dataset (debe existir en class_mapping.yaml).",
     )
     parser.add_argument(

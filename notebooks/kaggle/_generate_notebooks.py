@@ -176,6 +176,107 @@ def cell_save_artifacts(experiment_name: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def cell_finetune() -> dict:
+    """Celda principal de fine-tuning del modelo D sobre OtroEnfoque."""
+    return code(
+        "# Fine-tuning del modelo D sobre el dataset OtroEnfoque remapeado.",
+        "# Continúa el entrenamiento desde best.pt existente con lr más bajo",
+        "# para incorporar la riqueza de la clase `person` sin destruir lo",
+        "# aprendido sobre casco/chaleco.",
+        "import os, yaml",
+        "from pathlib import Path",
+        "from ultralytics import YOLO",
+        "",
+        "",
+        "def find_otroenfoque_root() -> str:",
+        '    """Localiza la raíz del dataset OtroEnfoque (debe tener images/train + labels/train)."""',
+        "    # Buscamos específicamente el dataset OtroEnfoque por el path",
+        "    # para no confundirlo con el dataset principal epp-yolo-processed.",
+        '    for root, dirs, _ in os.walk("/kaggle/input"):',
+        '        path_str = root.lower()',
+        '        if ("otroenfoque" in path_str or "remapped" in path_str) and \\',
+        '           "images" in dirs and "labels" in dirs and \\',
+        '           os.path.isdir(f"{root}/images/train"):',
+        "            return root",
+        '    raise RuntimeError("Dataset OtroEnfoque remapped no encontrado bajo /kaggle/input/")',
+        "",
+        "",
+        "def find_best_pt() -> str:",
+        '    """Localiza el best.pt del modelo D existente bajo /kaggle/input/."""',
+        '    for root, _, files in os.walk("/kaggle/input"):',
+        '        if "best.pt" in files:',
+        '            return os.path.join(root, "best.pt")',
+        '    raise RuntimeError("best.pt no encontrado bajo /kaggle/input/")',
+        "",
+        "",
+        "DATA_ROOT = find_otroenfoque_root()",
+        "WEIGHTS = find_best_pt()",
+        'print(f"Dataset OtroEnfoque: {DATA_ROOT}")',
+        'print(f"Pesos iniciales:    {WEIGHTS}")',
+        "",
+        "# Construir data.yaml apuntando al dataset OtroEnfoque montado.",
+        "# No tiene `test`, solo train/val.",
+        "data_cfg = {",
+        '    "path": DATA_ROOT,',
+        '    "train": "images/train",',
+        '    "val": "images/val",',
+        '    "names": {',
+        '        0: "head_with_helmet",',
+        '        1: "head_without_helmet",',
+        '        2: "person",',
+        '        3: "vest",',
+        '        4: "no_vest_person",',
+        "    },",
+        "}",
+        'patched = Path("/kaggle/working/data_finetune.yaml")',
+        'patched.write_text(yaml.safe_dump(data_cfg, sort_keys=False))',
+        'print(f"data.yaml para fine-tune: {patched}")',
+        "",
+        "# Cargar el modelo desde best.pt y continuar entrenando.",
+        "# Ultralytics auto-detecta que ya hay pesos y hace transfer learning.",
+        "model = YOLO(WEIGHTS)",
+        "",
+        "results = model.train(",
+        "    data=str(patched),",
+        '    name="finetune_otroenfoque",',
+        '    project="/kaggle/working/runs",',
+        "    # Configuración de fine-tuning conservadora:",
+        "    epochs=25,",
+        "    patience=10,",
+        "    imgsz=640,",
+        "    batch=16,",
+        '    optimizer="SGD",',
+        "    lr0=0.001,           # 10x menor que el lr original (0.01).",
+        "    lrf=0.01,",
+        "    momentum=0.937,",
+        "    weight_decay=0.0005,",
+        "    warmup_epochs=2.0,",
+        "    # Augmentaciones suaves (mantener lo aprendido):",
+        "    mosaic=1.0,",
+        "    mixup=0.0,",
+        "    erasing=0.0,",
+        "    close_mosaic=8,      # apaga mosaic en los últimos 8 de 25 epochs.",
+        "    fliplr=0.5,",
+        "    hsv_h=0.015,",
+        "    hsv_s=0.7,",
+        "    hsv_v=0.4,",
+        "    translate=0.1,",
+        "    scale=0.5,",
+        ")",
+        "",
+        'best_pt_path = "/kaggle/working/runs/finetune_otroenfoque/weights/best.pt"',
+        'print(f"\\nModelo fine-tuned guardado en: {best_pt_path}")',
+        "",
+        "# Validación final del modelo fine-tuned sobre el val de OtroEnfoque.",
+        'print("\\n=== Validación final sobre val de OtroEnfoque ===")',
+        "metrics = model.val(data=str(patched), verbose=False)",
+        'print(f"mAP@0.5      global: {metrics.box.map50:.4f}")',
+        'print(f"mAP@0.5-0.95 global: {metrics.box.map:.4f}")',
+        'print(f"Precision    global: {metrics.box.mp:.4f}")',
+        'print(f"Recall       global: {metrics.box.mr:.4f}")',
+    )
+
+
 def cell_occlusion_analysis() -> dict:
     """Celda de análisis de robustez por nivel de oclusión sobre test."""
     return code(
@@ -428,6 +529,20 @@ NOTEBOOKS = [
         "exp_name": "occlusion",
         "is_occlusion": True,
     },
+    {
+        "filename": "09_finetune_otroenfoque.ipynb",
+        "title": "Fine-tuning del modelo D sobre OtroEnfoque (Mejora iterativa)",
+        "description": (
+            "Continúa el entrenamiento del modelo D sobre el dataset "
+            "Construction Site Safety remapeado (OtroEnfoque). Objetivo: "
+            "mejorar la clase `person` (mAP 0.17 -> esperado 0.6+) sin "
+            "perder lo aprendido sobre casco y chaleco. Usa learning rate "
+            "10x menor (0.001) y 25 epochs."
+        ),
+        "hyp": None,
+        "exp_name": "finetune",
+        "is_finetune": True,
+    },
 ]
 
 
@@ -547,10 +662,36 @@ def build_occlusion_notebook(spec: dict) -> dict:
     return base_notebook(cells)
 
 
+def build_finetune_notebook(spec: dict) -> dict:
+    """Construye el notebook de fine-tuning sobre OtroEnfoque (notebook 09)."""
+    cells = [
+        md(
+            f"# {spec['title']}",
+            "",
+            spec["description"],
+            "",
+            "> **Notebook delgado**: solo orquesta. La lógica vive en `src/` del repositorio.",
+            "",
+            "**Requisitos:**",
+            "- Adjuntar el dataset `epp-yolo-otroenfoque-remapped` como Input.",
+            "- Adjuntar el dataset `epp-yolo-exp-d-weights` (con el `best.pt` del modelo D).",
+            "- GPU: T4 x2 o P100.",
+            "- Internet: On.",
+            "",
+            "**Tiempo estimado:** 2-3 horas en T4 x2 / 1.5-2 h en P100.",
+        ),
+        cell_setup(),
+        cell_finetune(),
+    ]
+    return base_notebook(cells)
+
+
 def main() -> None:
     """Escribe los notebooks scaffold en disco."""
     for spec in NOTEBOOKS:
-        if spec.get("is_occlusion"):
+        if spec.get("is_finetune"):
+            nb = build_finetune_notebook(spec)
+        elif spec.get("is_occlusion"):
             nb = build_occlusion_notebook(spec)
         elif spec.get("is_eval"):
             nb = build_eval_notebook(spec)
