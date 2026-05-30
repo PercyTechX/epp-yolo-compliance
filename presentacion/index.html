@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detección de Cumplimiento de EPP con YOLOv8 — Presentación</title>
+
+    <!-- reveal.js core + tema -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+
+    <style>
+        :root {
+            --color-conforme: #2e7d32;
+            --color-no-conforme: #c62828;
+            --color-indeterminado: #f9a825;
+            --color-primary: #1565c0;
+            --color-dark: #0d2c4f;
+            --color-light-bg: #f5f7fa;
+        }
+
+        .reveal { font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .reveal h1, .reveal h2, .reveal h3 { color: var(--color-dark); text-transform: none; }
+        .reveal h1 { font-size: 2.2em; }
+        .reveal h2 { font-size: 1.8em; }
+        .reveal h3 { font-size: 1.3em; color: var(--color-primary); }
+        .reveal section img { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 6px; }
+        .reveal p, .reveal li { font-size: 0.85em; line-height: 1.5; }
+        .reveal small { color: #555; }
+
+        /* Slide de portada */
+        .slide-portada {
+            background: linear-gradient(135deg, #0d2c4f 0%, #1565c0 100%);
+            color: white !important;
+            padding: 2em !important;
+        }
+        .slide-portada h1, .slide-portada h2, .slide-portada h3 { color: white !important; }
+        .slide-portada .subtitulo { font-size: 1.3em; opacity: 0.9; margin-top: 0.5em; }
+        .slide-portada .autor { font-size: 1em; opacity: 0.8; margin-top: 2em; }
+        .slide-portada .link { font-size: 0.7em; opacity: 0.7; margin-top: 0.3em; word-break: break-all; }
+
+        /* Tarjetas info */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1em;
+            margin-top: 1em;
+        }
+        .card {
+            background: var(--color-light-bg);
+            border-left: 4px solid var(--color-primary);
+            padding: 1em;
+            border-radius: 6px;
+            text-align: left;
+            font-size: 0.8em;
+        }
+        .card.green { border-left-color: var(--color-conforme); }
+        .card.red { border-left-color: var(--color-no-conforme); }
+        .card.yellow { border-left-color: var(--color-indeterminado); }
+        .card h4 { margin: 0 0 0.4em 0; font-size: 1em; color: var(--color-dark); }
+
+        /* Tablas */
+        .reveal table { font-size: 0.7em; margin: 0 auto; }
+        .reveal table th { background: var(--color-dark); color: white; padding: 0.5em 0.8em; }
+        .reveal table td { padding: 0.4em 0.8em; text-align: center; }
+        .reveal table tr:nth-child(even) { background: #f7f7f7; }
+        .reveal table tr:hover { background: #e3f2fd; }
+
+        /* Highlights */
+        .highlight {
+            background: #fff9c4;
+            padding: 0.1em 0.4em;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .badge-conforme { background: var(--color-conforme); color: white; padding: 0.2em 0.6em; border-radius: 4px; font-size: 0.85em; }
+        .badge-no-conforme { background: var(--color-no-conforme); color: white; padding: 0.2em 0.6em; border-radius: 4px; font-size: 0.85em; }
+        .badge-indeterminado { background: var(--color-indeterminado); color: white; padding: 0.2em 0.6em; border-radius: 4px; font-size: 0.85em; }
+
+        /* Hero number (números destacados) */
+        .hero-stat {
+            display: inline-block;
+            text-align: center;
+            margin: 1em;
+        }
+        .hero-stat .number {
+            font-size: 3em;
+            font-weight: bold;
+            color: var(--color-primary);
+            line-height: 1;
+        }
+        .hero-stat .label {
+            font-size: 0.7em;
+            color: #555;
+            margin-top: 0.3em;
+        }
+
+        /* Diagrama de pipeline */
+        .pipeline {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5em;
+            margin: 1.5em 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.7em;
+        }
+        .pipeline-box {
+            background: var(--color-light-bg);
+            border: 2px solid var(--color-primary);
+            padding: 0.8em 1.2em;
+            border-radius: 8px;
+        }
+        .pipeline-arrow {
+            font-size: 1.5em;
+            color: var(--color-primary);
+        }
+
+        /* Comparativas lado a lado */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1em;
+            margin: 1em 0;
+        }
+        .compare-grid > div {
+            text-align: center;
+        }
+        .compare-grid img {
+            max-height: 280px;
+            width: auto;
+        }
+        .compare-grid h4 {
+            margin: 0.5em 0 0 0;
+            color: var(--color-primary);
+            font-size: 0.9em;
+        }
+
+        /* 3-col */
+        .three-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.5em;
+        }
+        .three-col img { max-height: 220px; width: auto; }
+        .three-col h4 { font-size: 0.8em; margin: 0.3em 0 0 0; }
+
+        /* Quote box */
+        blockquote {
+            background: #e3f2fd;
+            border-left: 4px solid var(--color-primary);
+            padding: 1em 1.5em;
+            font-style: italic;
+            border-radius: 4px;
+            margin: 1em 0;
+        }
+
+        /* Nota lateral */
+        .nota-lateral {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 0.8em 1em;
+            text-align: left;
+            font-size: 0.8em;
+            border-radius: 4px;
+            margin-top: 1em;
+        }
+        .nota-lateral strong { color: #e65100; }
+
+        /* Cita en formato analogía */
+        .analogia {
+            background: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%);
+            border: 2px dashed #f9a825;
+            padding: 1.2em;
+            border-radius: 8px;
+            font-size: 0.85em;
+            margin-top: 1em;
+            text-align: left;
+        }
+        .analogia::before {
+            content: "💡 Analogía";
+            display: block;
+            font-weight: bold;
+            color: #e65100;
+            margin-bottom: 0.5em;
+        }
+
+        /* Final slide */
+        .slide-final {
+            background: linear-gradient(135deg, #1565c0 0%, #0d2c4f 100%);
+            color: white !important;
+        }
+        .slide-final h1, .slide-final h2 { color: white !important; }
+    </style>
+</head>
+<body>
+
+<div class="reveal">
+<div class="slides">
+
+<!-- =================================================== -->
+<!-- 1. PORTADA                                          -->
+<!-- =================================================== -->
+<section class="slide-portada">
+    <h1>Detección de Cumplimiento<br>de Normas de Seguridad</h1>
+    <p class="subtitulo">en Obras de Construcción con YOLOv8<br>y Verificación Determinista por Reglas</p>
+    <p class="autor"><strong>Jesús Percy Nazario Portilla</strong><br>
+    Parcial — Deep Learning aplicado a visión por computadora</p>
+    <p class="link">github.com/PercyTechX/epp-yolo-compliance</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 2. EL PROBLEMA — LENGUAJE LLANO                     -->
+<!-- =================================================== -->
+<section>
+    <h2>El problema en una frase</h2>
+    <p>Queremos que una <strong>cámara y un programa</strong> miren una obra de construcción y digan:</p>
+
+    <div class="card-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+        <div class="card green">
+            <h4>🟢 CONFORME</h4>
+            Este trabajador tiene casco. Está bien.
+        </div>
+        <div class="card red">
+            <h4>🔴 NO CONFORME</h4>
+            Este trabajador no tiene casco. Riesgo.
+        </div>
+        <div class="card yellow">
+            <h4>🟡 INDETERMINADO</h4>
+            No puedo verle la cabeza. No me animo a decidir.
+        </div>
+    </div>
+
+    <p style="margin-top: 1em;">Sin necesidad de un supervisor mirando cámaras 8 horas seguidas.</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 3. POR QUÉ IMPORTA                                  -->
+<!-- =================================================== -->
+<section>
+    <h2>¿Por qué importa?</h2>
+
+    <div class="card-grid">
+        <div class="card">
+            <h4>🏗️ Las obras son peligrosas</h4>
+            Caídas de objetos, golpes, accidentes. El casco salva vidas.
+        </div>
+        <div class="card">
+            <h4>👮 Supervisión manual cuesta</h4>
+            Inspecciones humanas son caras, esporádicas y subjetivas.
+        </div>
+        <div class="card">
+            <h4>🇵🇪 Contexto peruano</h4>
+            En obras chicas y medianas, polo manga larga + casco. Sin chaleco reflectivo.
+        </div>
+    </div>
+
+    <div class="nota-lateral">
+        <strong>Decisión técnica del proyecto:</strong> el sistema verifica <em>solo casco</em>, no chaleco.
+        La razón es doble: realidad operativa local + limitación de los datos disponibles (lo explicamos más adelante).
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 4. CÓMO LO RESOLVEMOS                               -->
+<!-- =================================================== -->
+<section>
+    <h2>La estrategia: dividir el problema en dos partes</h2>
+
+    <div class="pipeline">
+        <div class="pipeline-box">📷 Video<br>o imagen</div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-box" style="background: #e3f2fd;"><strong>YOLO</strong><br><em>detecta objetos</em></div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-box" style="background: #fff9c4;"><strong>Verificador</strong><br><em>aplica reglas</em></div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-box" style="background: #c8e6c9;">🟢🔴🟡<br>Veredicto</div>
+    </div>
+
+    <div class="analogia">
+        Es como un <strong>árbitro de fútbol con un asistente</strong>: el asistente (YOLO) le dice "vi una jugada peligrosa", pero el árbitro (verificador) decide si es amarilla, roja o nada. El asistente no juzga, solo observa. El árbitro no observa, solo decide.
+    </div>
+
+    <p style="margin-top: 1em;"><strong>Ventaja clave:</strong> si mañana cambian las reglas, modifico el verificador. No vuelvo a entrenar el modelo (eso son 7 horas de GPU).</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 5. ¿QUÉ ES YOLO?                                    -->
+<!-- =================================================== -->
+<section>
+    <h2>¿Qué es YOLO?</h2>
+
+    <p><strong>YOLO</strong> = <em>You Only Look Once</em>.</p>
+    <p>Un modelo de <strong>deep learning</strong> entrenado para detectar objetos en imágenes <strong>en tiempo real</strong>.</p>
+
+    <div class="card-grid">
+        <div class="card">
+            <h4>Entrada</h4>
+            Una imagen (ej. 640×640 píxeles)
+        </div>
+        <div class="card">
+            <h4>Salida</h4>
+            Una lista de <em>bounding boxes</em> con clase y nivel de confianza
+        </div>
+        <div class="card">
+            <h4>Ejemplo</h4>
+            "Veo una cabeza con casco en la posición (120, 60, 180, 100) con 92% de confianza"
+        </div>
+    </div>
+
+    <p style="margin-top: 1em;"><strong>Versión usada:</strong> YOLOv8s (Ultralytics) — ~11 millones de parámetros, balance entre velocidad y precisión.</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 6. LOS DATOS                                        -->
+<!-- =================================================== -->
+<section>
+    <h2>Los datos: tres fuentes combinadas</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Dataset</th>
+                <th>Imágenes</th>
+                <th>Aporta</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Hard Hat Workers</strong> (Northeastern Univ.)</td>
+                <td>7.035</td>
+                <td>Cabezas con/sin casco + person</td>
+            </tr>
+            <tr>
+                <td><strong>Safety Helmet</strong> (lisa-group-de)</td>
+                <td>7.035</td>
+                <td>Cabezas con/sin casco + person</td>
+            </tr>
+            <tr>
+                <td><strong>Safety Vest PPE</strong></td>
+                <td>11.906</td>
+                <td>Chalecos reflectivos</td>
+            </tr>
+            <tr style="background: #c8e6c9; font-weight: bold;">
+                <td>Total</td>
+                <td>25.976</td>
+                <td>(Plus 2.719 de OtroEnfoque al final)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top: 1em;">Las descargué de Roboflow Universe. Las imágenes muestran obras reales de varios países, con sus propias etiquetas.</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 7. TAXONOMÍA UNIFICADA                              -->
+<!-- =================================================== -->
+<section>
+    <h2>Tuve que unificar las etiquetas</h2>
+
+    <p>Cada dataset usa nombres diferentes (<code>helmet</code> vs <code>hardhat</code> vs <code>safety-helmet</code>). Lo primero fue traducir todo a una única taxonomía de 5 clases:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>Clase</th>
+                <th>Qué significa</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>0</td><td><code>head_with_helmet</code></td><td>Cabeza con casco</td></tr>
+            <tr><td>1</td><td><code>head_without_helmet</code></td><td>Cabeza sin casco</td></tr>
+            <tr><td>2</td><td><code>person</code></td><td>Cuerpo completo del trabajador</td></tr>
+            <tr><td>3</td><td><code>vest</code></td><td>Chaleco reflectivo</td></tr>
+            <tr><td>4</td><td><code>no_vest_person</code></td><td>Persona sin chaleco</td></tr>
+        </tbody>
+    </table>
+
+    <div class="nota-lateral">
+        <strong>Por qué importa esto:</strong> la traducción está en un archivo YAML versionado. Es la <em>única fuente de verdad</em>. Si dudo de algo, lo miro ahí.
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 8. DISTRIBUCIÓN                                     -->
+<!-- =================================================== -->
+<section>
+    <h2>Distribución de las clases</h2>
+
+    <img src="figures/class_distribution.png" alt="Distribución de clases por split" style="max-height: 380px;">
+
+    <div class="nota-lateral">
+        <strong>Observación clave:</strong> la clase <code>person</code> tiene solo <span class="highlight">1.116 instancias en train</span> (2% del total). Esto va a darnos problemas más adelante.
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 9. ENTRENAMIENTO                                    -->
+<!-- =================================================== -->
+<section>
+    <h2>Entrenamiento del modelo</h2>
+
+    <div class="card-grid">
+        <div class="card">
+            <h4>📦 Dónde</h4>
+            Kaggle Notebooks con GPU NVIDIA T4
+        </div>
+        <div class="card">
+            <h4>⏱️ Cuánto</h4>
+            ~7 horas por entrenamiento (80 epochs)
+        </div>
+        <div class="card">
+            <h4>📊 Cómo</h4>
+            70% train / 15% val / 15% test, estratificado, sin fuga
+        </div>
+    </div>
+
+    <p style="margin-top: 1em;"><strong>Hice 3 entrenamientos:</strong></p>
+    <ul style="text-align: left; display: inline-block;">
+        <li><strong>Baseline</strong>: configuración por defecto → referencia.</li>
+        <li><strong>Exp B</strong>: agregué Random Erasing + MixUp → probar si ayuda con oclusión.</li>
+        <li><strong>Exp D</strong> ⭐: <code>close_mosaic=15</code> → afinar el modelo en los últimos epochs. <em>Ganador.</em></li>
+    </ul>
+
+    <p><small>Descarté Exp A (resolución 960) por riesgo de timeout en Kaggle y Exp C (pesos de clase) porque no resolvía el problema real de fondo.</small></p>
+</section>
+
+<!-- =================================================== -->
+<!-- 10. CURVAS DE ENTRENAMIENTO                         -->
+<!-- =================================================== -->
+<section>
+    <h2>Curvas del entrenamiento</h2>
+
+    <img src="figures/results_exp_D.png" alt="Curvas modelo D" style="max-height: 380px;">
+
+    <p style="font-size: 0.8em;">Las 6 pérdidas (3 de entrenamiento + 3 de validación) bajan suavemente y las métricas suben de forma sostenida. <strong>No hay overfitting</strong>.</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 11. MATRIZ DE CONFUSIÓN                             -->
+<!-- =================================================== -->
+<section>
+    <h2>¿En qué se confunde el modelo?</h2>
+
+    <img src="figures/confusion_exp_D.png" alt="Matriz de confusión modelo D" style="max-height: 360px;">
+
+    <div class="nota-lateral">
+        <strong>Diagonal fuerte = buenas predicciones.</strong> Casi no hay confusión entre <em>casco</em> y <em>sin casco</em> (solo 20 errores cruzados sobre miles). Los errores caen en <em>background</em> (cosas que se le escapan), no en otras clases.
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 12. MÉTRICAS FINALES                                -->
+<!-- =================================================== -->
+<section>
+    <h2>Métricas sobre el test set</h2>
+    <p>3.895 imágenes que el modelo <strong>nunca vio</strong> durante el entrenamiento.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Clase</th>
+                <th>Precisión</th>
+                <th>Recall</th>
+                <th>mAP@0.5</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><code>head_with_helmet</code></td><td>0.939</td><td>0.950</td><td style="color: green; font-weight: bold;">0.976</td></tr>
+            <tr><td><code>head_without_helmet</code></td><td>0.892</td><td>0.942</td><td style="color: green; font-weight: bold;">0.947</td></tr>
+            <tr><td><code>vest</code></td><td>0.937</td><td>0.957</td><td style="color: green; font-weight: bold;">0.984</td></tr>
+            <tr><td><code>person</code></td><td>0.341</td><td>0.208</td><td style="color: red; font-weight: bold;">0.176</td></tr>
+            <tr style="background: #e3f2fd; font-weight: bold;"><td>Promedio</td><td>0.777</td><td>0.765</td><td>0.771</td></tr>
+        </tbody>
+    </table>
+
+    <div class="nota-lateral">
+        <strong>mAP@0.5</strong> = la métrica estándar. De 0 a 1, más alto = mejor. Por arriba de 0.95 ya es excelente. <em>Person</em> está bajo por escasez de datos (lo que vimos antes).
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 13. EL VERIFICADOR                                  -->
+<!-- =================================================== -->
+<section>
+    <h2>El verificador: las reglas del árbitro</h2>
+
+    <p>Cuando YOLO detecta cosas, el verificador decide qué hacer:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Lo que detectó YOLO</th>
+                <th>Veredicto</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Cabeza con casco</td><td><span class="badge-conforme">CONFORME</span></td></tr>
+            <tr><td>Cabeza sin casco</td><td><span class="badge-no-conforme">NO_CONFORME</span> (casco_ausente)</td></tr>
+            <tr><td>Persona sin cabeza visible</td><td><span class="badge-indeterminado">INDETERMINADO</span> (cabeza_no_visible)</td></tr>
+            <tr><td>Solo chaleco</td><td><em>ignorado</em></td></tr>
+        </tbody>
+    </table>
+
+    <div class="nota-lateral">
+        <strong>INDETERMINADO no es un error.</strong> Es una decisión deliberada: si no veo la cabeza, no me animo a juzgar. Prefiero pedir ayuda humana antes que inventar un veredicto.
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 14. EJEMPLO DEL VERIFICADOR                         -->
+<!-- =================================================== -->
+<section>
+    <h2>El verificador en acción</h2>
+
+    <img src="figures/verifier_imagen.jpg" alt="Verificador funcionando" style="max-height: 440px;">
+
+    <p style="font-size: 0.85em;">Tres trabajadores detectados. Verde 🟢 = CONFORME. Rojo 🔴 = NO_CONFORME. Amarillo 🟡 = INDETERMINADO.<br>
+    Tasa de cumplimiento del fotograma: <span class="highlight">66.7%</span>.</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 15. EL HALLAZGO IMPORTANTE                          -->
+<!-- =================================================== -->
+<section>
+    <h2>Un problema serio que tuve que diagnosticar</h2>
+
+    <p>Sobre 300 imágenes del val set, medí cuántas tenían detectados <strong>cabeza Y chaleco al mismo tiempo</strong>:</p>
+
+    <table>
+        <thead>
+            <tr><th>Categoría</th><th>Imágenes</th><th>%</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Solo cabeza con casco detectada</td><td>147</td><td>49.0%</td></tr>
+            <tr><td>Solo chaleco detectado</td><td>121</td><td>40.3%</td></tr>
+            <tr><td>Solo cabeza sin casco</td><td>22</td><td>7.3%</td></tr>
+            <tr style="background: #ffebee; font-weight: bold;"><td>Cabeza + chaleco (lo que necesito)</td><td>9</td><td style="color: red;">3.3% 😱</td></tr>
+        </tbody>
+    </table>
+
+    <div class="analogia">
+        El modelo aprendió <strong>dos modos diferentes</strong>: "imágenes estilo SHWD predigo cabezas, imágenes estilo PPE predigo chalecos". Casi nunca firma ambas cosas. <strong>No es culpa del modelo, es de los datos</strong>: cada dataset solo anotó una parte.
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 16. VALIDACIÓN EXPERIMENTAL                         -->
+<!-- =================================================== -->
+<section>
+    <h2>Para confirmarlo, probé con un modelo externo</h2>
+
+    <p>Tomé un modelo entrenado sobre un dataset bien anotado (Construction Site Safety) y le pasé el <strong>mismo verificador, sin cambiar ni una línea</strong>:</p>
+
+    <table>
+        <thead>
+            <tr><th>Métrica</th><th>Mi modelo D</th><th>Modelo externo</th><th>Ratio</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>CONFORME</td><td>861</td><td>2.287</td><td>2.66×</td></tr>
+            <tr><td>NO_CONFORME</td><td>2.600</td><td>7.221</td><td>2.78×</td></tr>
+            <tr><td>INDETERMINADO</td><td>1.309</td><td>397</td><td>↓ 0.30×</td></tr>
+            <tr style="background: #e3f2fd; font-weight: bold;"><td>Veredictos definitivos</td><td>3.461</td><td>9.508</td><td style="color: green;">2.75×</td></tr>
+        </tbody>
+    </table>
+
+    <div class="nota-lateral">
+        <strong>Confirmado:</strong> el cuello de botella es el dataset, no mi pipeline. Con un dataset apropiado, el sistema produce 2.75× más veredictos definitivos. La <em>tasa de cumplimiento</em> es similar (24%) → ambos modelos coinciden en quién cumple. Difieren en a cuántos pueden observar.
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 17. PRINCIPIO GUÍA                                  -->
+<!-- =================================================== -->
+<section>
+    <h2>El principio que guió las mejoras</h2>
+
+    <blockquote>
+        <strong>"Si para el ojo humano es evidente ver el casco,
+        para la IA también debería serlo. Pero si para el ojo humano
+        se dificulta, ahí recién la IA podría desvariar."</strong>
+    </blockquote>
+
+    <p>Este principio es estándar en <em>ML responsable</em>. Significa: el sistema debe estar <strong>calibrado con el observador humano</strong>.</p>
+
+    <p>Bajo este principio, los <em>frames vacíos</em> donde un humano ve al trabajador pero el sistema no, son un fallo serio. Hay que arreglarlo, no esconderlo.</p>
+
+    <div class="nota-lateral">
+        <strong>Decisión:</strong> aplicar dos mejoras iterativas. Una rápida (pipeline híbrido) y otra definitiva (fine-tuning).
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 18. MEJORA 1: PIPELINE HÍBRIDO                      -->
+<!-- =================================================== -->
+<section>
+    <h2>Mejora #1: Pipeline híbrido</h2>
+
+    <p>Combino <strong>dos modelos en paralelo</strong>:</p>
+
+    <div class="pipeline">
+        <div class="pipeline-box" style="background: #c8e6c9;">📷 Frame</div>
+        <div class="pipeline-arrow">→</div>
+        <div style="display: flex; flex-direction: column; gap: 0.5em;">
+            <div class="pipeline-box" style="background: #fff9c4;"><strong>Modelo D</strong><br><em>solo cabezas</em></div>
+            <div class="pipeline-box" style="background: #ffe0b2;"><strong>COCO YOLOv8</strong><br><em>solo personas</em></div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-box" style="background: #e3f2fd;"><strong>Verificador</strong><br><em>sin cambios</em></div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-box">🟢🔴🟡</div>
+    </div>
+
+    <p style="margin-top: 1em;">El modelo COCO está entrenado en >200.000 imágenes con millones de personas en cualquier pose. mAP de <code>person</code> ≈ 0.85 (5× mejor que mi modelo D).</p>
+
+    <p><strong>El verificador no cambia.</strong> Solo cambia lo que le llega.</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 19. RESULTADOS HÍBRIDO                              -->
+<!-- =================================================== -->
+<section>
+    <h2>Resultados: pipeline híbrido</h2>
+
+    <table>
+        <thead>
+            <tr><th>Métrica</th><th>Modelo D solo</th><th>Híbrido D+COCO</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>CONFORME</td><td>3.461</td><td>3.461</td></tr>
+            <tr><td>INDETERMINADO</td><td>3</td><td style="color: orange;">2.306</td></tr>
+            <tr style="background: #e3f2fd; font-weight: bold;"><td>Veredictos totales</td><td>3.464</td><td>5.767</td></tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top: 1em;">El sistema ahora <strong>ve a muchos más trabajadores</strong>. Cuando puede juzgarlos los marca verde. Cuando no, los marca amarillo. <strong>Ya no deja frames vacíos.</strong></p>
+</section>
+
+<!-- =================================================== -->
+<!-- 20. MEJORA 2: FINE-TUNING                           -->
+<!-- =================================================== -->
+<section>
+    <h2>Mejora #2: Fine-tuning sobre OtroEnfoque</h2>
+
+    <p>El híbrido funciona pero requiere 2 modelos. Idea más elegante:<br>
+    <strong>enseñarle a un solo modelo todo lo que necesita saber.</strong></p>
+
+    <div class="card-grid">
+        <div class="card">
+            <h4>📚 Dataset usado</h4>
+            Construction Site Safety: 2.719 imágenes con <strong>anotación completa por trabajador</strong> (Hardhat + Person + Vest todos juntos).
+        </div>
+        <div class="card">
+            <h4>🔧 Fine-tuning</h4>
+            Continúo el entrenamiento del modelo D con <em>learning rate</em> bajo (0.001 vs 0.01 original) para no destruir lo aprendido.
+        </div>
+        <div class="card">
+            <h4>⚡ Costo</h4>
+            25 epochs ≈ 40 minutos en GPU T4. Mucho más barato que reentrenar desde cero.
+        </div>
+    </div>
+
+    <p style="margin-top: 1em;"><strong>Importante:</strong> el modelo final lo sigo entrenando yo. No es un modelo descargado.</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 21. DISTRIBUCIÓN OTROENFOQUE                        -->
+<!-- =================================================== -->
+<section>
+    <h2>Lo que aporta el dataset nuevo</h2>
+
+    <img src="figures/distribution_otroenfoque.png" alt="Distribución OtroEnfoque" style="max-height: 320px;">
+
+    <p style="font-size: 0.85em;"><strong>El gran win</strong>: la clase <code>person</code> pasa de tener 1.116 instancias (original) a tener 9.698 más (8× más datos). Justo la clase que estaba mal.</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 22. RESULTADOS DEL FINE-TUNING                      -->
+<!-- =================================================== -->
+<section>
+    <h2>Resultados del fine-tuning</h2>
+
+    <table>
+        <thead>
+            <tr><th>Clase</th><th>Antes</th><th>Después</th><th>Cambio</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><code>head_with_helmet</code></td><td>0.978</td><td>0.733*</td><td>(*test distinto)</td></tr>
+            <tr style="background: #c8e6c9; font-weight: bold;"><td><code>person</code></td><td style="color: red;">0.176</td><td style="color: green;">0.708</td><td style="color: green;">+302% 🚀</td></tr>
+            <tr><td><code>no_vest_person</code></td><td>—</td><td>0.588</td><td style="color: green;">clase nueva ✨</td></tr>
+        </tbody>
+    </table>
+
+    <div class="nota-lateral">
+        <strong>* Aclaración:</strong> los números "antes" y "después" se midieron en datasets distintos (no se pueden comparar directamente). El test verdadero es sobre los videos. Sigue.
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 23. DEMO: COMPARACIÓN DE 3 VERSIONES                -->
+<!-- =================================================== -->
+<section>
+    <h2>Demo sobre video real: 3 versiones comparadas</h2>
+
+    <div class="three-col">
+        <div>
+            <img src="figures/demo_solo_casco.jpg" alt="Modelo D solo">
+            <h4>Modelo D solo</h4>
+            <p style="font-size: 0.7em;">Detecta los cascos. Algunos trabajadores no aparecen.</p>
+        </div>
+        <div>
+            <img src="figures/demo_hibrido.jpg" alt="Pipeline híbrido">
+            <h4>Híbrido D + COCO</h4>
+            <p style="font-size: 0.7em;">Todos los trabajadores aparecen. Mucho amarillo (INDETERMINADO).</p>
+        </div>
+        <div>
+            <img src="figures/demo_finetuned.jpg" alt="Fine-tuned">
+            <h4>Fine-tuned (final)</h4>
+            <p style="font-size: 0.7em;">Todos aparecen. Mayoría verde (CONFORME). Un solo modelo.</p>
+        </div>
+    </div>
+
+    <p style="margin-top: 1em; font-size: 0.85em;">Mismo fotograma de un video de obra colombiana procesado por las 3 versiones.</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 24. NÚMEROS DE LA DEMO                              -->
+<!-- =================================================== -->
+<section>
+    <h2>Los números detrás del demo</h2>
+
+    <p><strong>Video03 (close-up de obra), 773 fotogramas:</strong></p>
+    <table>
+        <thead>
+            <tr><th>Métrica</th><th>D solo</th><th>Híbrido</th><th>Fine-tuned</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>CONFORME</td><td>3.461</td><td>3.461</td><td style="color: green;">6.594</td></tr>
+            <tr><td>NO_CONFORME</td><td>0</td><td>0</td><td>122</td></tr>
+            <tr><td>INDETERMINADO</td><td>3</td><td>2.306</td><td>896</td></tr>
+            <tr style="background: #e3f2fd;"><td><strong>% definitivos</strong></td><td>99.9%</td><td>60%</td><td>88%</td></tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top: 1em;"><strong>Video04 (panorámico 4K), 593 fotogramas:</strong></p>
+    <table>
+        <thead>
+            <tr><th>Métrica</th><th>D solo</th><th>Híbrido</th><th>Fine-tuned</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>CONFORME</td><td>85</td><td>2.287</td><td style="color: green;">7.669</td></tr>
+            <tr style="background: #e3f2fd;"><td><strong>% definitivos</strong></td><td>1.2%</td><td>25%</td><td>80%</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<!-- =================================================== -->
+<!-- 25. DEMO PANORÁMICO                                 -->
+<!-- =================================================== -->
+<section>
+    <h2>Demo sobre video panorámico (4K)</h2>
+
+    <img src="figures/demo_panoramico_finetuned.jpg" alt="Video panorámico fine-tuned" style="max-height: 400px;">
+
+    <p style="font-size: 0.85em;">Los trabajadores en primer plano están en verde (casco visible). Los del fondo, donde el casco no se distingue a esa distancia, en amarillo. <strong>El sistema se adapta solo a la perspectiva.</strong></p>
+</section>
+
+<!-- =================================================== -->
+<!-- 26. ANÁLISIS DE OCLUSIÓN                            -->
+<!-- =================================================== -->
+<section>
+    <h2>¿Y qué pasa cuando hay oclusión?</h2>
+
+    <p>Particioné el test set en 3 niveles según cuánto se solapan los bboxes entre sí:</p>
+
+    <table>
+        <thead>
+            <tr><th>Nivel</th><th>Imágenes</th><th>mAP@0.5</th><th>Recall</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Bajo (poco solape)</td><td>3.695</td><td>0.779</td><td>0.796</td></tr>
+            <tr><td>Medio</td><td>185</td><td>0.789</td><td>0.749</td></tr>
+            <tr><td>Alto (mucho solape)</td><td>15</td><td style="color: orange;">0.704</td><td style="color: red;">0.623</td></tr>
+            <tr style="background: #ffebee;"><td><strong>Caída</strong></td><td>—</td><td>-7.5 pp</td><td>-17.3 pp</td></tr>
+        </tbody>
+    </table>
+
+    <div class="nota-lateral">
+        <strong>Lectura:</strong> el modelo es robusto a oclusión leve-media. En oclusión alta cae sobre todo el <em>recall</em> (se pierden detecciones), no la <em>precision</em>. Es lo correcto: el modelo <strong>pierde casos</strong> pero no los <strong>inventa</strong>.
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 27. ÉTICA — FN VS FP                                -->
+<!-- =================================================== -->
+<section>
+    <h2>Implicaciones éticas (I): asimetría de errores</h2>
+
+    <div class="card-grid">
+        <div class="card red">
+            <h4>🚨 Falso negativo</h4>
+            No detectar a un trabajador sin casco.<br>
+            <strong>El trabajador queda en riesgo.</strong> Daño físico potencial.
+        </div>
+        <div class="card yellow">
+            <h4>😡 Falso positivo</h4>
+            Marcar como no conforme a alguien que sí cumple.<br>
+            <strong>Sanción injusta.</strong> El sistema pierde confianza.
+        </div>
+    </div>
+
+    <p style="margin-top: 1em;"><strong>En seguridad ocupacional, el FN es más costoso.</strong> Por eso el umbral del modelo no debe maximizar el mAP global, sino el <em>recall</em> sobre la clase "sin casco".</p>
+
+    <p style="margin-top: 1em;">El estado INDETERMINADO es un <strong>mecanismo de seguridad</strong>: el sistema no inventa veredictos. Escala la decisión al humano.</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 28. ÉTICA — PRIVACIDAD                              -->
+<!-- =================================================== -->
+<section>
+    <h2>Implicaciones éticas (II): privacidad</h2>
+
+    <p>Un sistema que graba continuamente plantea problemas:</p>
+
+    <ul style="text-align: left; display: inline-block;">
+        <li><strong>Vigilancia continua</strong>: genera estrés y desincentiva el reporte voluntario de incidentes.</li>
+        <li><strong>Uso secundario de imágenes</strong>: ¿qué pasa después con los videos? ¿quién más los ve?</li>
+        <li><strong>Consentimiento</strong>: bajo coerción laboral no es consentimiento válido.</li>
+    </ul>
+
+    <p style="margin-top: 1em;"><strong>El sistema técnico no resuelve esto solo.</strong> Necesita políticas operativas:</p>
+    <ul style="text-align: left; display: inline-block;">
+        <li>Anonimización de rostros</li>
+        <li>Retención mínima necesaria</li>
+        <li>Acceso restringido por roles</li>
+        <li>Auditoría de uso</li>
+    </ul>
+</section>
+
+<!-- =================================================== -->
+<!-- 29. ÉTICA — SESGOS                                  -->
+<!-- =================================================== -->
+<section>
+    <h2>Implicaciones éticas (III): sesgos del dataset</h2>
+
+    <div class="card-grid">
+        <div class="card">
+            <h4>🌍 Geográfico</h4>
+            Datasets dominados por imágenes de China, EE.UU. y Europa. Trabajadores con vestimenta tradicional o herramientas locales subrepresentados.
+        </div>
+        <div class="card">
+            <h4>👥 Demográfico</h4>
+            Distribución de género, edad y etnicidad no auditada. Reconocido como limitación del trabajo.
+        </div>
+        <div class="card">
+            <h4>📸 Captura</h4>
+            Iluminación diurna, clima despejado, ángulos fijos. Falla con luz tenue, lluvia o cámara temblorosa.
+        </div>
+    </div>
+
+    <p style="margin-top: 1em;">Las métricas reportadas son válidas para la distribución del <strong>test set</strong>, no son garantía sobre condiciones de despliegue distintas.</p>
+</section>
+
+<!-- =================================================== -->
+<!-- 30. CONCLUSIONES                                    -->
+<!-- =================================================== -->
+<section>
+    <h2>Conclusiones</h2>
+
+    <ol style="text-align: left; display: inline-block; font-size: 0.85em;">
+        <li>Entrenamiento exitoso: <strong>mAP@0.5 = 0.771</strong> sobre test no visto.</li>
+        <li>El modelo <strong>generaliza correctamente</strong> (val vs test prácticamente idéntico).</li>
+        <li>El verificador determinista funciona: <strong>39 tests pasando</strong>.</li>
+        <li>Diagnostiqué una <strong>limitación estructural</strong> del dataset y la validé experimentalmente.</li>
+        <li>Apliqué <strong>2 mejoras iterativas</strong> basadas en el diagnóstico (híbrido + fine-tuning).</li>
+        <li>El sistema <strong>expone honestamente su incertidumbre</strong> (INDETERMINADO).</li>
+        <li>3 ejes éticos identificados, que <strong>requieren políticas operativas</strong>, no solo código.</li>
+    </ol>
+</section>
+
+<!-- =================================================== -->
+<!-- 31. CIFRAS CLAVE PARA RECORDAR                      -->
+<!-- =================================================== -->
+<section>
+    <h2>Cifras clave para llevarse</h2>
+
+    <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+        <div class="hero-stat">
+            <div class="number">0.771</div>
+            <div class="label">mAP@0.5<br>(test set)</div>
+        </div>
+        <div class="hero-stat">
+            <div class="number">39</div>
+            <div class="label">tests<br>pytest</div>
+        </div>
+        <div class="hero-stat">
+            <div class="number">+302%</div>
+            <div class="label">mejora en<br>clase person</div>
+        </div>
+        <div class="hero-stat">
+            <div class="number">2.75×</div>
+            <div class="label">más veredictos<br>(validación externa)</div>
+        </div>
+        <div class="hero-stat">
+            <div class="number">28k</div>
+            <div class="label">imágenes<br>procesadas</div>
+        </div>
+        <div class="hero-stat">
+            <div class="number">3</div>
+            <div class="label">versiones<br>del sistema</div>
+        </div>
+    </div>
+</section>
+
+<!-- =================================================== -->
+<!-- 32. FINAL — GRACIAS                                 -->
+<!-- =================================================== -->
+<section class="slide-final">
+    <h1>Gracias.</h1>
+    <h2 style="margin-top: 1em;">¿Preguntas?</h2>
+    <p style="margin-top: 2em; font-size: 0.8em; opacity: 0.85;">
+        github.com/PercyTechX/epp-yolo-compliance<br>
+        Release v1.0: github.com/PercyTechX/epp-yolo-compliance/releases/tag/v1.0
+    </p>
+</section>
+
+</div>
+</div>
+
+<!-- reveal.js -->
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+
+<script>
+    Reveal.initialize({
+        hash: true,
+        slideNumber: 'c/t',
+        controls: true,
+        progress: true,
+        center: true,
+        transition: 'slide',
+        plugins: [ RevealHighlight, RevealNotes ]
+    });
+</script>
+
+</body>
+</html>
