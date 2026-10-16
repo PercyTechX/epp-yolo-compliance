@@ -1,16 +1,67 @@
-# Detección de Cumplimiento de EPP con YOLOv8
+# Detección de cumplimiento de EPP en obras con YOLOv8
 
-Sistema híbrido para detectar trabajadores y verificar cumplimiento de Equipo
-de Protección Personal (casco y chaleco) en obras de construcción.
-La percepción la realiza un modelo YOLOv8 ajustado al dominio; la decisión de
-cumplimiento la realiza un verificador determinista en posproceso.
+Sistema de visión por computador que **detecta a los trabajadores de una obra y verifica si usan casco de seguridad**. Un detector **YOLOv8s** ajustado al dominio se encarga de la percepción, y un **verificador determinista** emite un veredicto por trabajador: **CONFORME**, **NO CONFORME** o **INDETERMINADO**, este último cuando no hay evidencia suficiente para juzgar.
 
-> **Estado:** Fase 1 (preparación de entorno y datos) + scaffolds para fases 2-6.
-> No hay pesos entrenados ni datasets versionados en este repositorio.
+<p align="center">
+  <img src="presentacion/figures/demo_solo_casco.jpg" alt="Veredictos por trabajador sobre un video real de obra" width="820">
+</p>
+
+## Resultados
+
+Modelo final: YOLOv8s con `close_mosaic=15` (experimento D), evaluado sobre **3.895 imágenes de prueba nunca vistas**.
+
+| Clase | mAP@0.5 | Precisión | Recall |
+|---|---:|---:|---:|
+| Cabeza con casco | **0,976** | 0,939 | 0,950 |
+| Cabeza sin casco | **0,947** | 0,892 | 0,942 |
+| Chaleco | **0,984** | 0,937 | 0,957 |
+| Persona | 0,176 | 0,341 | 0,208 |
+| **Global** | **0,771** | 0,777 | 0,765 |
+
+- **Sin sobreajuste:** el mAP@0.5 en validación (0,775) y en prueba (0,771) es prácticamente el mismo, gracias a splits estratificados 70/15/15 sin fuga.
+- **Video real no visto** (773 fotogramas, 1920×1080): **99,9 % de veredictos definitivos** con la regla final; solo 3 casos quedan como INDETERMINADO por oclusión real.
+- **Robustez a la oclusión:** el mAP@0.5 baja de 0,779 (oclusión baja) a 0,704 (oclusión alta), y la métrica más afectada es el recall.
+- **Calidad del código:** 29 pruebas unitarias del verificador con `pytest`.
+
+## Cómo funciona
+
+```
+Imagen / video ─► YOLOv8s (5 clases) ─► verificador determinista ─► veredicto por trabajador + % de cumplimiento
+                  cabeza con casco          ancla en la cabeza:          CONFORME · NO CONFORME ·
+                  cabeza sin casco          ¿lleva casco?                INDETERMINADO
+                  persona · chaleco
+```
+
+1. **Datos:** se unificaron 3 datasets públicos (SHWD, Safety Helmet Detection y PPE Detection) en una taxonomía de 5 clases, con validación visual y splits estratificados.
+2. **Entrenamiento:** YOLOv8s en Kaggle (Tesla T4, 80 épocas por experimento). Se compararon 3 configuraciones: baseline, aumentación agresiva (Random Erasing + MixUp) y `close_mosaic=15`, que fue la ganadora.
+3. **Verificación:** la lógica de negocio vive fuera del modelo, en código determinista y testeable. Así se puede auditar y cambiar la regla sin reentrenar.
+
+## Hallazgos clave
+
+- **Sesgo de etiquetado entre datasets.** Dos de los datasets solo anotan cabezas y el otro solo chalecos. El modelo aprendió ese patrón: **solo el 3 % de las imágenes tenía cabeza y chaleco detectados a la vez**, lo que dejaba el 27 % de los veredictos como INDETERMINADO.
+- **Diagnóstico validado con evidencia.** Se probó el mismo verificador con un modelo externo entrenado sobre un dataset con anotación completa: produjo 2,75 veces más veredictos definitivos y bajó los INDETERMINADO de 27 % a 4 %. El problema estaba en los datos, no en la lógica.
+- **Decisión de alcance.** Se redefinió la regla a **solo casco**, que además se ajusta a la realidad de las obras peruanas, donde el chaleco no es uniforme universal. Con ella, los veredictos definitivos pasaron a ser prácticamente el 100 %.
+- **Ética:** el informe analiza la asimetría de errores (un falso negativo es más grave que un falso positivo), la privacidad de los trabajadores y los sesgos geográficos del dataset.
+
+<p align="center">
+  <img src="presentacion/figures/verifier_imagen.jpg" alt="Ejemplo de los tres veredictos" width="380">
+  <img src="presentacion/figures/results_exp_D.png" alt="Curvas de entrenamiento del modelo final" width="440">
+</p>
+
+## Documentación
+
+- [Informe final](reports/informe_final.md), con metodología, experimentos, análisis de oclusión, ética y conclusiones.
+- [Comparación de experimentos y métricas en prueba](reports/tables/baseline_metrics.md)
+- [Validación del verificador](reports/tables/verifier_findings.md) y [comparación con un modelo externo](reports/tables/external_model_comparison.md)
+- [Glosario de métricas](GLOSARIO_METRICAS.md)
+
+**Equipo:** Efflyn Caja, José Chiroques y Jesús Nazario. Curso Redes Neuronales y Aprendizaje Profundo, Maestría en Inteligencia Artificial – UNI.
 
 ---
 
-## Arquitectura híbrida local + Kaggle
+## Detalles técnicos y reproducibilidad
+
+### Arquitectura híbrida local + Kaggle
 
 El código vive en este repositorio Git. Los notebooks de Kaggle son delgados
 y solo orquestan: clonan el repo, instalan dependencias e invocan funciones
@@ -26,7 +77,7 @@ del paquete `src/`.
 
 ---
 
-## Taxonomía unificada (5 clases)
+### Taxonomía unificada (5 clases)
 
 | id | nombre              | significado                                           |
 |----|---------------------|-------------------------------------------------------|
@@ -41,14 +92,14 @@ versionada en [configs/class_mapping.yaml](configs/class_mapping.yaml).
 
 ---
 
-## Requisitos del entorno
+### Requisitos del entorno
 
 - **Python 3.11** (3.12 aún tiene problemas de wheels en algunas libs de visión).
 - GPU NVIDIA con al menos 8 GB de VRAM **solo si se entrena localmente**.
   De lo contrario el entrenamiento corre en Kaggle.
 - Git.
 
-### Instalación local
+#### Instalación local
 
 ```powershell
 # 1. Crear entorno virtual
@@ -70,7 +121,7 @@ pip install -e .
 > de `pip install -r requirements.txt` siguiendo
 > https://pytorch.org/get-started/locally/.
 
-### Herramientas opcionales (fuera de `requirements.txt`)
+#### Herramientas opcionales (fuera de `requirements.txt`)
 
 | Herramienta | Para qué | Cómo instalar |
 |---|---|---|
@@ -81,7 +132,7 @@ pip install -e .
 
 ---
 
-## Datasets de origen
+### Datasets de origen
 
 Los datasets **no se versionan** en el repositorio. Cada integrante los
 descarga manualmente y los coloca en `data/raw/` siguiendo la estructura
@@ -98,7 +149,7 @@ generalmente CC BY 4.0 (verificar al descargar).
 
 ---
 
-## Orden de ejecución de scripts (Fase 1)
+### Orden de ejecución de scripts (Fase 1)
 
 Todos los scripts viven en [src/data/](src/data/) y exponen `--help`.
 
@@ -122,7 +173,7 @@ python -m src.data.class_distribution_report --src data/processed --out reports/
 
 ---
 
-## Entrenamiento (Kaggle)
+### Entrenamiento (Kaggle)
 
 Cada experimento es un notebook delgado en [notebooks/kaggle/](notebooks/kaggle/).
 La lógica vive en este repo; el notebook solo orquesta:
@@ -139,7 +190,7 @@ en un **release de Git**, nunca commiteados al repositorio.
 
 ---
 
-## Verificador de cumplimiento
+### Verificador de cumplimiento
 
 Módulo en [src/compliance/](src/compliance/) que consume detecciones YOLO y
 emite un veredicto por persona:
@@ -157,7 +208,7 @@ pytest tests/ -v
 
 ---
 
-## Estructura del repositorio
+### Estructura del repositorio
 
 ```
 .
@@ -181,7 +232,7 @@ pytest tests/ -v
 
 ---
 
-## Reproducibilidad
+### Reproducibilidad
 
 1. Clonar el repo.
 2. Crear entorno con Python 3.11 e instalar `requirements.txt`.
@@ -193,7 +244,7 @@ pytest tests/ -v
 
 ---
 
-## Alcance explícitamente NO incluido
+### Alcance explícitamente NO incluido
 
 - Tracking entre fotogramas (ByteTrack, SORT, DeepSORT).
 - Re-identificación de trabajadores.
@@ -201,3 +252,4 @@ pytest tests/ -v
 - Generación de datos sintéticos.
 - Etiquetado manual de imágenes nuevas.
 - Despliegue en tiempo real o hardware embebido.
+
